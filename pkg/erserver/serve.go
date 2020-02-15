@@ -11,9 +11,9 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/swarmdiscovery"
 	"github.com/function61/edgerouter/pkg/httputils"
 	"github.com/function61/eventhorizon/pkg/ehreader"
+	"github.com/function61/gokit/envvar"
 	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/taskrunner"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -194,7 +194,7 @@ func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {
 
 func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) {
 	// loadbalancer's CertBus private key for which the certificate private keys are encrypted
-	certBusPrivateKey, err := ioutil.ReadFile("certbus-client.key")
+	certBusPrivateKey, err := envvar.RequiredFromBase64Encoded("CERTBUS_CLIENT_PRIVKEY")
 	if err != nil {
 		return nil, err
 	}

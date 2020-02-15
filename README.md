@@ -47,6 +47,7 @@ Configuration is driven by the following ENV variables:
 - EventHorizon access: CertBus + service discovery of static applications
   * `AWS_ACCESS_KEY_ID`
   * `AWS_SECRET_ACCESS_KEY`
+  * `CERTBUS_CLIENT_PRIVKEY`, base64 encoded PEM encoded ("----- BEGIN ... -----") private key
   * `EVENTHORIZON_TENANT`, example: prod:1
 - Docker service discovery
   * `DOCKER_CLIENTCERT`, base64 encoded PEM encoded ("----- BEGIN ... -----") cert

@@ -11,6 +11,7 @@ functions and S3 static websites.
 Contents:
 
 - [Features](#features)
+- [Documentation](#documentation)
 - [Edgerouter configuration](#edgerouter-configuration)
 - [Application configuration](#application-configuration)
 - [TODO](#todo)
@@ -44,6 +45,12 @@ Features
     have advanced control of things like different auth interactive vs. API users etc.
 - Opinionated
   * Not meant to support everyone's use cases. Do the few things we do, really well.
+
+
+Documentation
+-------------
+
+- [Managing S3 static websites](docs/s3-static-websites/README.md)
 
 
 Edgerouter configuration

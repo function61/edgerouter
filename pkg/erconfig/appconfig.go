@@ -115,7 +115,7 @@ func (b *BackendOptsS3StaticWebsite) Validate() error {
 
 type BackendOptsPeerSet struct {
 	Addrs     []string   `json:"addrs"`
-	TlsConfig *TlsConfig `json:"tls_config"`
+	TlsConfig *TlsConfig `json:"tls_config,omitempty"`
 }
 
 func (b *BackendOptsPeerSet) Validate() error {

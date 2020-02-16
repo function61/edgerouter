@@ -3,7 +3,6 @@ package swarmdiscovery
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
@@ -14,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 )
 
 type Service struct {
@@ -69,93 +67,6 @@ type swarmDiscovery struct {
 	dockerNetworkName string
 	dockerUrl         string
 	dockerClient      *http.Client
-}
-
-// find annotations from here:
-//     https://docs.traefik.io/v1.7/configuration/backends/docker/
-func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
-	// require explicit enable flag Traefik
-	if service.Labels["traefik.enable"] != "true" {
-		return nil, nil
-	}
-
-	scheme := "http"
-	if proto, has := service.Labels["traefik.protocol"]; has {
-		if proto != "http" && proto != "https" {
-			return nil, fmt.Errorf("unsupported protocol: %s", proto)
-		}
-
-		scheme = proto
-	}
-
-	insecureSkipVerify := false
-
-	// doesn't actually seem to exist in Traefik:
-	//     https://github.com/containous/traefik/issues/2367
-	if insecureSkipVerifyString, has := service.Labels["traefik.backend.tls.insecureSkipVerify"]; has {
-		if insecureSkipVerifyString != "true" {
-			return nil, fmt.Errorf("unsupported value for insecureSkipVerify: %s", insecureSkipVerifyString)
-		}
-
-		if scheme != "https" {
-			return nil, errors.New("insecureSkipVerify specified but not using https")
-		}
-
-		insecureSkipVerify = true
-	}
-
-	// also doesn't exist in Traefik
-	tlsServerName := service.Labels["traefik.backend.tls.serverName"]
-
-	port := service.Labels["traefik.port"]
-	if port == "" {
-		if scheme == "http" {
-			port = "80"
-		} else if scheme == "https" {
-			port = "443"
-		}
-	}
-
-	frontendRule := service.Labels["traefik.frontend.rule"]
-	if frontendRule == "" {
-		return nil, fmt.Errorf("skipping traefik.enable'd service without a frontend rule")
-	}
-
-	frontend, err := func() (erconfig.Frontend, error) {
-		switch {
-		case strings.HasPrefix(frontendRule, "Host:"):
-			return erconfig.SimpleHostnameFrontend(frontendRule[len("Host:"):], "/", false), nil
-		case strings.HasPrefix(frontendRule, "HostRegexp:"):
-			return erconfig.RegexpHostnameFrontend(frontendRule[len("HostRegexp:"):], "/"), nil
-		default:
-			return erconfig.Frontend{}, fmt.Errorf("unsupported frontend rule: %s", frontendRule)
-		}
-	}()
-	if err != nil {
-		return nil, err
-	}
-
-	addrs := []string{}
-
-	for _, instance := range service.Instances {
-		addrs = append(addrs, scheme+"://"+instance.IPv4+":"+port)
-	}
-
-	if len(addrs) == 0 {
-		return nil, nil
-	}
-
-	tlsConfig := &erconfig.TlsConfig{
-		InsecureSkipVerify: insecureSkipVerify,
-		ServerName:         tlsServerName,
-	}
-
-	app := erconfig.SimpleApplication(
-		service.Name,
-		frontend,
-		erconfig.PeerSetBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent()))
-
-	return &app, nil
 }
 
 func (s *swarmDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {

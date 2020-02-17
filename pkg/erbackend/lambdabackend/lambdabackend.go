@@ -25,10 +25,10 @@ type lambdaBackend struct {
 	lambda       *lambda.Lambda
 }
 
-func New(opts erconfig.BackendOptsAwsLambda) erbackend.Backend {
+func New(opts erconfig.BackendOptsAwsLambda) (erbackend.Backend, error) {
 	creds, err := awshelpers.GetCredentials()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	manualCredential := credentials.NewStaticCredentials(
@@ -38,7 +38,7 @@ func New(opts erconfig.BackendOptsAwsLambda) erbackend.Backend {
 
 	awsSession, err := session.NewSession()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &lambdaBackend{
@@ -46,7 +46,7 @@ func New(opts erconfig.BackendOptsAwsLambda) erbackend.Backend {
 		lambda: lambda.New(
 			awsSession,
 			aws.NewConfig().WithCredentials(manualCredential).WithRegion(opts.RegionId)),
-	}
+	}, nil
 }
 
 func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {

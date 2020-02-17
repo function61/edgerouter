@@ -20,9 +20,9 @@ func makeBackend(
 	case erconfig.BackendKindS3StaticWebsite:
 		return statics3websitebackend.New(appId, *backendConf.S3StaticWebsiteOpts), nil
 	case erconfig.BackendKindPeerSet:
-		return peersetbackend.New(*backendConf.PeerSetOpts), nil
+		return peersetbackend.New(*backendConf.PeerSetOpts)
 	case erconfig.BackendKindAwsLambda:
-		return lambdabackend.New(*backendConf.AwsLambdaOpts), nil
+		return lambdabackend.New(*backendConf.AwsLambdaOpts)
 	case erconfig.BackendKindEdgerouterAdmin:
 		return newAdminBackend(fem), nil
 	case erconfig.BackendKindAuthV0:

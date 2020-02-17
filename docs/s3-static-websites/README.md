@@ -38,7 +38,7 @@ $ edgerouter discovery ls
 Now, let's create definition for the site:
 
 ```console
-$ edgerouter s3 mk example.com example.com / fn61-staticwebsites eu-central-1
+$ edgerouter s3 mk example.com example.com / yourorg-staticwebsites eu-central-1
 $ edgerouter discovery ls
 +-------------+-----------------------+--------------------+
 | ID          | Frontends             | Backend            |

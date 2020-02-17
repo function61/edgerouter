@@ -3,6 +3,7 @@ package erserver
 import (
 	"context"
 	"crypto/tls"
+	"github.com/felixge/httpsnoop"
 	"github.com/function61/certbus/pkg/certbus"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
@@ -86,30 +87,29 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			GetCertificate: certBus.GetCertificateAdapter(),
 		},
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestStarted := time.Now()
+			var mount *Mount
+			// see for greatly written rationale https://github.com/felixge/httpsnoop
+			// tl;dr: response snooping is hard without losing Websocket etc. support
+			stats := httpsnoop.CaptureMetrics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mount = serveRequest(w, r)
+			}), w, r)
 
-			wrappedResponseWriter := createWrappedResponseWriter(w)
+			appId := func() string {
+				if mount == nil {
+					return "appNotFound"
+				} else {
+					return mount.App.Id
+				}
+			}()
 
-			mount := serveRequest(wrappedResponseWriter, r)
-
-			requestDuration := time.Since(requestStarted).Seconds()
-
-			appId := "appNotFound"
-			if mount != nil {
-				appId = mount.App.Id
-			}
-
-			statusCode := wrappedResponseWriter.StatusCode()
-			statusCodeStr := strconv.Itoa(statusCode)
-
-			if statusCode < 400 {
-				incAppCodeMethodCounter(metrics.requestsOk, appId, statusCodeStr, r.Method)
+			if stats.Code < 400 {
+				incAppCodeMethodCounter(metrics.requestsOk, appId, strconv.Itoa(stats.Code), r.Method)
 			} else {
-				incAppCodeMethodCounter(metrics.requestsFail, appId, statusCodeStr, r.Method)
+				incAppCodeMethodCounter(metrics.requestsFail, appId, strconv.Itoa(stats.Code), r.Method)
 			}
 
-			metrics.requestDuration.WithLabelValues(appId).Observe(requestDuration)
-			metrics.requestDuration.WithLabelValues(allAppKey).Observe(requestDuration)
+			metrics.requestDuration.WithLabelValues(appId).Observe(stats.Duration.Seconds())
+			metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
 		}),
 	}
 

@@ -2,7 +2,6 @@ package erserver
 
 import (
 	"net"
-	"net/http"
 	"strings"
 )
 
@@ -14,24 +13,4 @@ func nonStupidSplitHostPort(maybeHostPort string) (string, string, error) {
 	}
 
 	return net.SplitHostPort(maybeHostPort)
-}
-
-// implements http.ResponseWriter but stores the sent statusCode so we can access it later
-// TODO: we lose support for hijacking (websockets etc.)
-type wrappedResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (p *wrappedResponseWriter) WriteHeader(statusCode int) {
-	p.statusCode = statusCode
-	p.ResponseWriter.WriteHeader(statusCode)
-}
-
-func (p *wrappedResponseWriter) StatusCode() int {
-	return p.statusCode
-}
-
-func createWrappedResponseWriter(inner http.ResponseWriter) *wrappedResponseWriter {
-	return &wrappedResponseWriter{inner, http.StatusOK}
 }

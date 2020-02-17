@@ -45,18 +45,22 @@ func appsToFrontendMatchers(apps []erconfig.Application) (*frontendMatchers, err
 	fem := newFrontendMatchers(apps)
 
 	for _, app := range apps {
-		var backend erbackend.Backend
-		switch app.Backend.Kind {
-		case erconfig.BackendKindS3StaticWebsite:
-			backend = statics3websitebackend.New(app)
-		case erconfig.BackendKindPeerSet:
-			backend = peersetbackend.New(app)
-		case erconfig.BackendKindAwsLambda:
-			backend = lambdabackend.New(app)
-		case erconfig.BackendKindEdgerouterAdmin:
-			backend = newAdminBackend(fem)
-		default:
-			return nil, errors.New("unsupported backend kind")
+		backend, err := func() (erbackend.Backend, error) {
+			switch app.Backend.Kind {
+			case erconfig.BackendKindS3StaticWebsite:
+				return statics3websitebackend.New(app), nil
+			case erconfig.BackendKindPeerSet:
+				return peersetbackend.New(app), nil
+			case erconfig.BackendKindAwsLambda:
+				return lambdabackend.New(app), nil
+			case erconfig.BackendKindEdgerouterAdmin:
+				return newAdminBackend(fem), nil
+			default:
+				return nil, errors.New("unsupported backend kind")
+			}
+		}()
+		if err != nil {
+			return nil, err
 		}
 
 		for _, frontend := range app.Frontends {

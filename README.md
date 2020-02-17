@@ -148,8 +148,6 @@ TODO
 ----
 
 - Write docs on how to use all this
-- S3: response caching, server caching. Due to our design this optimizes like crazy
-  (we know exactly when if and when content in S3 is updated).
 - Circuit breaker
 - Take into account Docker Swarm's health checks
 - Less sucky admin UI

@@ -94,7 +94,7 @@ func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		if _, err := w.Write([]byte(err.Error())); err != nil {
-			panic(err)
+			log.Printf("error writing: %v", err)
 		}
 		return
 	}
@@ -112,7 +112,7 @@ func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := proxyApiGatewayResponse(payloadResponse, w); err != nil {
-		// TODO: if we've already wrote headers, this might not succeed
+		// TODO: if we already wrote headers, this will not succeed
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
 }

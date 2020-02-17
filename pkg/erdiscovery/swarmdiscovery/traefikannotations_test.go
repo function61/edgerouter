@@ -122,6 +122,33 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   }
 }`),
+		mkTestCase("authorized", ip101, labels{
+			"traefik.frontend.rule":             "Host:example.com",
+			"traefik.backend.auth_bearer_token": "Hunter2",
+		}, `{
+  "id": "authorized",
+  "frontends": [
+    {
+      "kind": "hostname",
+      "hostname": "example.com",
+      "path_prefix": "/"
+    }
+  ],
+  "backend": {
+    "kind": "auth_v0",
+    "auth_v0_opts": {
+      "bearer_token": "Hunter2",
+      "authorized_backend": {
+        "kind": "peer_set",
+        "peer_set_opts": {
+          "addrs": [
+            "http://192.168.1.101:80"
+          ]
+        }
+      }
+    }
+  }
+}`),
 	}
 
 	for _, tc := range tcs {

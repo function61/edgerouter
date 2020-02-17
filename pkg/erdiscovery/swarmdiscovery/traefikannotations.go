@@ -84,10 +84,23 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		ServerName:         tlsServerName,
 	}
 
+	backend := erconfig.PeerSetBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent())
+
+	// doesn't exist in Traefik
+	bearerToken, found := service.Labels["traefik.backend.auth_bearer_token"]
+	if found {
+		if bearerToken == "" {
+			return nil, errors.New("empty bearer token not supported")
+		}
+
+		// wrap in auth backend
+		backend = erconfig.AuthV0Backend(bearerToken, backend)
+	}
+
 	app := erconfig.SimpleApplication(
 		service.Name,
 		frontend,
-		erconfig.PeerSetBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent()))
+		backend)
 
 	return &app, nil
 }

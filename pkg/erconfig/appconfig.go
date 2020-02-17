@@ -230,6 +230,16 @@ func EdgerouterAdminBackend() Backend {
 	}
 }
 
+func AuthV0Backend(bearerToken string, authorizedBackend Backend) Backend {
+	return Backend{
+		Kind: BackendKindAuthV0,
+		AuthV0Opts: &BackendOptsAuthV0{
+			BearerToken:       bearerToken,
+			AuthorizedBackend: authorizedBackend,
+		},
+	}
+}
+
 // describers
 
 func (a *Application) Describe() string {

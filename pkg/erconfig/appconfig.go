@@ -74,11 +74,17 @@ func (a *Application) Validate() error {
 		return a.Backend.AwsLambdaOpts.Validate()
 	case BackendKindEdgerouterAdmin:
 		return nil
+	case BackendKindAuthV0:
+		return a.Backend.AuthV0Opts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
 	}
 }
 
+// when adding new kind, remember to update:
+// - Application.Validate()
+// - Backend.Describe()
+// - factory in backendfactory
 type BackendKind string
 
 const (
@@ -86,6 +92,7 @@ const (
 	BackendKindPeerSet         BackendKind = "peer_set"
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
+	BackendKindAuthV0          BackendKind = "auth_v0"
 )
 
 type Backend struct {
@@ -93,6 +100,7 @@ type Backend struct {
 	S3StaticWebsiteOpts *BackendOptsS3StaticWebsite `json:"s3_static_website_opts,omitempty"`
 	PeerSetOpts         *BackendOptsPeerSet         `json:"peer_set_opts,omitempty"`
 	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
+	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
 }
 
 type BackendOptsS3StaticWebsite struct {
@@ -138,6 +146,19 @@ func (b *BackendOptsAwsLambda) Validate() error {
 
 	if b.RegionId == "" {
 		return emptyFieldErr("RegionId")
+	}
+
+	return nil
+}
+
+type BackendOptsAuthV0 struct {
+	BearerToken       string  `json:"bearer_token"`
+	AuthorizedBackend Backend `json:"authorized_backend"`
+}
+
+func (b *BackendOptsAuthV0) Validate() error {
+	if b.BearerToken == "" {
+		return emptyFieldErr("BearerToken")
 	}
 
 	return nil
@@ -243,6 +264,8 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + strings.Join(b.PeerSetOpts.Addrs, ", ")
 	case BackendKindAwsLambda:
 		return string(b.Kind) + ":" + fmt.Sprintf("%s@%s", b.AwsLambdaOpts.FunctionName, b.AwsLambdaOpts.RegionId)
+	case BackendKindAuthV0:
+		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	default:
 		return string(b.Kind)
 	}

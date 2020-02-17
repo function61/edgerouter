@@ -3,9 +3,6 @@ package erserver
 import (
 	"errors"
 	"github.com/function61/edgerouter/pkg/erbackend"
-	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
-	"github.com/function61/edgerouter/pkg/erbackend/peersetbackend"
-	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"regexp"
 	"sort"
@@ -45,20 +42,7 @@ func appsToFrontendMatchers(apps []erconfig.Application) (*frontendMatchers, err
 	fem := newFrontendMatchers(apps)
 
 	for _, app := range apps {
-		backend, err := func() (erbackend.Backend, error) {
-			switch app.Backend.Kind {
-			case erconfig.BackendKindS3StaticWebsite:
-				return statics3websitebackend.New(app), nil
-			case erconfig.BackendKindPeerSet:
-				return peersetbackend.New(app), nil
-			case erconfig.BackendKindAwsLambda:
-				return lambdabackend.New(app), nil
-			case erconfig.BackendKindEdgerouterAdmin:
-				return newAdminBackend(fem), nil
-			default:
-				return nil, errors.New("unsupported backend kind")
-			}
-		}()
+		backend, err := makeBackend(app.Id, app.Backend, fem)
 		if err != nil {
 			return nil, err
 		}

@@ -14,21 +14,19 @@ import (
 	"strings"
 )
 
-func New(app erconfig.Application) erbackend.Backend {
-	s3StaticWebsiteOpts := app.Backend.S3StaticWebsiteOpts
-
+func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) erbackend.Backend {
 	// looks like "sites/joonasfi-blog/versionid"
-	pathPrefix := bucketPrefix(app.Id, s3StaticWebsiteOpts.DeployedVersion)
+	pathPrefix := bucketPrefix(appId, opts.DeployedVersion)
 
-	expectedETag := makeETag(s3StaticWebsiteOpts.DeployedVersion)
+	expectedETag := makeETag(opts.DeployedVersion)
 
 	return &s3Backend{
 		expectedETag: expectedETag,
 		reverseProxy: &httputil.ReverseProxy{
 			Director: func(r *http.Request) {
-				if s3StaticWebsiteOpts.DeployedVersion == "" {
+				if opts.DeployedVersion == "" {
 					r.URL = nil
-					log.Printf("no deployed version for %s", app.Id)
+					log.Printf("no deployed version for %s", appId)
 					return
 				}
 
@@ -41,7 +39,7 @@ func New(app erconfig.Application) erbackend.Backend {
 					rerouted += "index.html"
 				}
 
-				bucketUrl, err := url.Parse("https://s3." + s3StaticWebsiteOpts.RegionId + ".amazonaws.com/" + s3StaticWebsiteOpts.BucketName + "/" + rerouted)
+				bucketUrl, err := url.Parse("https://s3." + opts.RegionId + ".amazonaws.com/" + opts.BucketName + "/" + rerouted)
 				if err != nil {
 					panic(err)
 				}

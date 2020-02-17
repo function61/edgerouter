@@ -10,9 +10,7 @@ import (
 	"net/url"
 )
 
-func New(app erconfig.Application) erbackend.Backend {
-	opts := app.Backend.PeerSetOpts
-
+func New(opts erconfig.BackendOptsPeerSet) erbackend.Backend {
 	// FIXME
 	firstAddr, err := url.Parse(opts.Addrs[0])
 	if err != nil {

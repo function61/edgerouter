@@ -25,7 +25,7 @@ type lambdaBackend struct {
 	lambda       *lambda.Lambda
 }
 
-func New(app erconfig.Application) erbackend.Backend {
+func New(opts erconfig.BackendOptsAwsLambda) erbackend.Backend {
 	creds, err := awshelpers.GetCredentials()
 	if err != nil {
 		panic(err)
@@ -41,13 +41,11 @@ func New(app erconfig.Application) erbackend.Backend {
 		panic(err)
 	}
 
-	lopts := app.Backend.AwsLambdaOpts
-
 	return &lambdaBackend{
-		functionName: lopts.FunctionName,
+		functionName: opts.FunctionName,
 		lambda: lambda.New(
 			awsSession,
-			aws.NewConfig().WithCredentials(manualCredential).WithRegion(lopts.RegionId)),
+			aws.NewConfig().WithCredentials(manualCredential).WithRegion(opts.RegionId)),
 	}
 }
 

@@ -85,6 +85,7 @@ Application configuration
 Services/containers discovered from Docker are mostly
 [Traefik-notation compliant](https://docs.traefik.io/v1.7/configuration/backends/docker/),
 so labels like `traefik.frontend.rule`, `traefik.port` etc are parsed into an app config.
+See [test cases](pkg/erdiscovery/swarmdiscovery/traefikannotations_test.go) for supported directives.
 
 "Static" application configs can be published via EventHorizon and all Edgerouter nodes in
 the cluster will pick up the same changes.

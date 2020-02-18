@@ -10,7 +10,7 @@ Contents:
 - [Choose a hostname for the admin UI](#choose-a-hostname-for-the-admin-ui)
 - [Authentication](#authentication)
 - [Example app config](#example-app-config)
-- [Enabling the admin UI](#enabling-the-admin-ui)
+- [Enabling the app config](#enabling-the-app-config)
 - [Machine-to-machine authorization](#machine-to-machine-authorization)
 
 
@@ -26,11 +26,10 @@ As an example, let's fill in the blanks:
 - Service = `edgerouter`
 - Environment `dev` (for development)
 
-Therefore, we would use `edgerouter.dev.example.com`. In our use we already have wildcard
-`*.dev.example.com`:
+Therefore, we would use `edgerouter.dev.example.com`. In our use we already have:
 
-- DNS entry to the loadbalancer
-- TLS certificate
+- `*.dev.example.com` DNS entry pointing to the loadbalancer
+- `*.dev.example.com` TLS certificate
 
 So we can just plop stuff under that wildcard without needing to mess with DNS or TLS certs.
 Your case may be different, so adjust accordingly.
@@ -42,8 +41,8 @@ Authentication
 You probably don't want the UI to be publicly visible. We wrap the admin backend with
 authentication middleware (it's just a backend that composes another backend inside).
 
-We'll use `auth_v0` backend which basically just uses either Bearer token auth or Basic
-auth (browser asks for password).
+We'll use `auth_v0` backend which basically just uses either Bearer token (= machine-to-machine)
+auth or Basic auth (= browser asks for password).
 
 As the secret token (= "password"), we'll choose `Hunter2`.
 
@@ -75,13 +74,13 @@ After making the above decisions, we end up with this app config:
 }
 ```
 
-This is how the above config with authorization middleware looks inside Edgerouter:
+This is how the above app config with authorization middleware looks inside Edgerouter:
 
 ![Authorization flow](auth-flow.png)
 
 
-Enabling the admin UI
----------------------
+Enabling the app config
+-----------------------
 
 Take the config from above and write it to a temp file (maybe named `admin.json`). Write
 it to service discovery:

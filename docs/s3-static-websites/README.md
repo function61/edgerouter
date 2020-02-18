@@ -14,7 +14,9 @@ Assumptions
 
 We'll assume your S3 bucket name is `yourorg-staticwebsites` and its region is `eu-central-1`.
 
-The website we're deploying is `example.com`. Its content is in `example.com.tar.gz`.
+The website we're deploying is `example.com`. Its content are in `example.com.tar.gz`.
+
+You have already setup IAM users and permissions according to Edgerouter's installation guide.
 
 You can run these `$ edgerouter` commands from any computer (it doesn't have to be the
 loadbalancer).

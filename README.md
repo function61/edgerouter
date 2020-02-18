@@ -12,7 +12,6 @@ Contents:
 
 - [Features](#features)
 - [Documentation](#documentation)
-- [Edgerouter configuration](#edgerouter-configuration)
 - [Application configuration](#application-configuration)
 
 
@@ -51,30 +50,20 @@ TODO features: look at [issues](https://github.com/function61/edgerouter/issues)
 Documentation
 -------------
 
+- [Installation](docs/installation/README.md)
+  * Also covers setting up, configuration, AWS IAM permissions
 - [Managing S3 static websites](docs/s3-static-websites/README.md)
 - [Enabling the admin UI](docs/enabling-the-admin-ui/README.md)
-  * This document also covers authentication middleware
+  * Also explains authentication middleware
 
 TODO: more documentation
 
 
-Edgerouter configuration
-------------------------
+Application configuration
+-------------------------
 
-Configuration is driven by the following ENV variables:
-
-- EventHorizon access: CertBus + service discovery of static applications
-  * `AWS_ACCESS_KEY_ID`
-  * `AWS_SECRET_ACCESS_KEY`
-  * `CERTBUS_CLIENT_PRIVKEY`, base64 encoded PEM encoded ("----- BEGIN ... -----") private key
-  * `EVENTHORIZON_TENANT`, example: prod:1
-- Docker service discovery
-  * `DOCKER_CLIENTCERT`, base64 encoded PEM encoded ("----- BEGIN ... -----") cert
-  * `DOCKER_CLIENTCERT_KEY`, base64 encoded PEM encoded ("----- BEGIN ... -----") private key
-  * `DOCKER_URL`, example: https://dockersockproxy:4431
-  * `NETWORK_NAME`, example: fn61
-
-EdgeRouter consumes these [EventHorizon](https://github.com/function61/eventhorizon) streams:
+EdgeRouter consumes these [EventHorizon](https://github.com/function61/eventhorizon)
+streams for realtime updates:
 
 - `/t-1/certbus`
   * TLS certificate updates happen here
@@ -82,10 +71,6 @@ EdgeRouter consumes these [EventHorizon](https://github.com/function61/eventhori
   * Static application definitions are updated here. "Static" doesn't mean the applications
     don't evolve - it means that they-re semi permanent. The static definition is updated
     each time a S3 static website is deployed. Lambda definitions rarely change.
-
-
-Application configuration
--------------------------
 
 Services/containers discovered from Docker are mostly
 [Traefik-notation compliant](https://docs.traefik.io/v1.7/configuration/backends/docker/),

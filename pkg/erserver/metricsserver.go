@@ -2,7 +2,7 @@ package erserver
 
 import (
 	"context"
-	"github.com/function61/edgerouter/pkg/httputils"
+	"github.com/function61/gokit/httputils"
 	"github.com/function61/gokit/taskrunner"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"

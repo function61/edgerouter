@@ -3,7 +3,7 @@ package insecureredirector
 
 import (
 	"context"
-	"github.com/function61/edgerouter/pkg/httputils"
+	"github.com/function61/gokit/httputils"
 	"github.com/function61/gokit/taskrunner"
 	"log"
 	"net/http"

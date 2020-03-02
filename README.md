@@ -1,4 +1,4 @@
-[![Build Status](https://img.shields.io/travis/function61/edgerouter.svg?style=for-the-badge)](https://travis-ci.org/function61/edgerouter)
+![Build status](https://github.com/function61/edgerouter/workflows/Build/badge.svg)
 [![Download](https://img.shields.io/badge/Download-bintray%20latest-blue.svg?style=for-the-badge)](https://bintray.com/function61/dl/edgerouter/_latestVersion#files)
 [![MicroBadger Size](https://img.shields.io/microbadger/image-size/fn61/edgerouter.svg?style=for-the-badge&label=Docker+image)](https://hub.docker.com/r/fn61/edgerouter/)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://pkg.go.dev/github.com/function61/edgerouter)

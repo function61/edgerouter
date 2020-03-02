@@ -52,12 +52,19 @@ func New(opts erconfig.BackendOptsAwsLambda) (erbackend.Backend, error) {
 func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 	log.Printf("requesting path %s", r.URL.String())
 
+	defer r.Body.Close()
+
 	requestBodyBase64 := &bytes.Buffer{}
-	if _, err := io.Copy(base64.NewEncoder(base64.StdEncoding, requestBodyBase64), r.Body); err != nil {
+	requestBodyBase64Encoder := base64.NewEncoder(base64.StdEncoding, requestBodyBase64)
+	if _, err := io.Copy(requestBodyBase64Encoder, r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+
+	if err := requestBodyBase64Encoder.Close(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	headers, err := copyHeaders(r)
 	if err != nil {
@@ -65,7 +72,7 @@ func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e := events.APIGatewayProxyRequest{
+	proxyRequest := events.APIGatewayProxyRequest{
 		Resource:              "/",
 		Path:                  r.URL.Path,
 		Headers:               headers,
@@ -77,18 +84,19 @@ func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if requestBodyBase64.Len() > 0 {
-		e.Body = requestBodyBase64.String()
-		e.IsBase64Encoded = true
+		proxyRequest.Body = requestBodyBase64.String()
+		proxyRequest.IsBase64Encoded = true
 	}
 
-	payload, err := json.Marshal(&e)
+	proxyRequestJson, err := json.Marshal(&proxyRequest)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	out, err := b.lambda.Invoke(&lambda.InvokeInput{
+
+	lambdaResponse, err := b.lambda.Invoke(&lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
-		Payload:      payload,
+		Payload:      proxyRequestJson,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -100,7 +108,7 @@ func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payloadResponse := &events.APIGatewayProxyResponse{}
-	if err := json.Unmarshal(out.Payload, payloadResponse); err != nil {
+	if err := json.Unmarshal(lambdaResponse.Payload, payloadResponse); err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}

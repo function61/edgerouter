@@ -62,7 +62,7 @@ TODO: more documentation
 Application configuration
 -------------------------
 
-EdgeRouter consumes these [EventHorizon](https://github.com/function61/eventhorizon)
+Edgerouter consumes these [EventHorizon](https://github.com/function61/eventhorizon)
 streams for realtime updates:
 
 - `/t-1/certbus`

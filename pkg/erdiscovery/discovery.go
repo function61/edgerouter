@@ -1,3 +1,4 @@
+// Application discovery - finding backends and frotends to route traffic to
 package erdiscovery
 
 import (

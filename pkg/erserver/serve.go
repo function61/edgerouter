@@ -1,3 +1,4 @@
+// Actual server implementation of Edgerouter
 package erserver
 
 import (

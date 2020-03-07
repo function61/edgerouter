@@ -1,3 +1,4 @@
+// Application configuration data structures
 package erconfig
 
 import (

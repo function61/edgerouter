@@ -1,3 +1,4 @@
+// Main entrypoint for all things Edgerouter
 package main
 
 import (

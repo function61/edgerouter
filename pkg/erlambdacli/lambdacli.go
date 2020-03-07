@@ -1,3 +1,4 @@
+// CLI for managing Lambda application backends
 package erlambdacli
 
 import (

@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/httputils"
 	"net/http"
 	"strings"
 )
@@ -26,7 +27,7 @@ func (b *backend) Serve(w http.ResponseWriter, r *http.Request) {
 		b.authorizedBackend.Serve(w, r)
 	} else {
 		w.Header().Set("WWW-Authenticate", `Basic realm="Use Authorization: Bearer or provide it as password"`)
-		w.WriteHeader(http.StatusUnauthorized)
+		httputils.Error(w, http.StatusUnauthorized)
 	}
 }
 

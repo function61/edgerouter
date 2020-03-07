@@ -2,12 +2,12 @@ package erserver
 
 import (
 	"fmt"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/peersetbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"net/http"
 )
 
 // TODO: make "fem" parameteter unnecessary
@@ -15,7 +15,7 @@ func makeBackend(
 	appId string,
 	backendConf erconfig.Backend,
 	fem *frontendMatchers,
-) (erbackend.Backend, error) {
+) (http.Handler, error) {
 	switch backendConf.Kind {
 	case erconfig.BackendKindS3StaticWebsite:
 		return statics3websitebackend.New(appId, *backendConf.S3StaticWebsiteOpts), nil

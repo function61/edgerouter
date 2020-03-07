@@ -3,14 +3,13 @@ package authv0backend
 
 import (
 	"crypto/subtle"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/gokit/httputils"
 	"net/http"
 	"strings"
 )
 
-func New(opts erconfig.BackendOptsAuthV0, authorizedBackend erbackend.Backend) erbackend.Backend {
+func New(opts erconfig.BackendOptsAuthV0, authorizedBackend http.Handler) http.Handler {
 	return &backend{
 		expectedBearerToken: opts.BearerToken,
 		authorizedBackend:   authorizedBackend,
@@ -19,12 +18,12 @@ func New(opts erconfig.BackendOptsAuthV0, authorizedBackend erbackend.Backend) e
 
 type backend struct {
 	expectedBearerToken string
-	authorizedBackend   erbackend.Backend
+	authorizedBackend   http.Handler
 }
 
-func (b *backend) Serve(w http.ResponseWriter, r *http.Request) {
+func (b *backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if authorize(r, b.expectedBearerToken) {
-		b.authorizedBackend.Serve(w, r)
+		b.authorizedBackend.ServeHTTP(w, r)
 	} else {
 		w.Header().Set("WWW-Authenticate", `Basic realm="Use Authorization: Bearer or provide it as password"`)
 		httputils.Error(w, http.StatusUnauthorized)

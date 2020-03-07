@@ -74,7 +74,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			}
 		}
 
-		mount.backend.Serve(w, r)
+		mount.backend.ServeHTTP(w, r)
 
 		return mount
 	}

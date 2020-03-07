@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/function61/edgerouter/pkg/awshelpers"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"io"
 	"log"
@@ -25,7 +24,7 @@ type lambdaBackend struct {
 	lambda       *lambda.Lambda
 }
 
-func New(opts erconfig.BackendOptsAwsLambda) (erbackend.Backend, error) {
+func New(opts erconfig.BackendOptsAwsLambda) (http.Handler, error) {
 	creds, err := awshelpers.GetCredentials()
 	if err != nil {
 		return nil, err
@@ -49,7 +48,7 @@ func New(opts erconfig.BackendOptsAwsLambda) (erbackend.Backend, error) {
 	}, nil
 }
 
-func (b *lambdaBackend) Serve(w http.ResponseWriter, r *http.Request) {
+func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("requesting path %s", r.URL.String())
 
 	defer r.Body.Close()

@@ -4,7 +4,6 @@ package statics3websitebackend
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"io/ioutil"
 	"log"
@@ -14,7 +13,7 @@ import (
 	"strings"
 )
 
-func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) erbackend.Backend {
+func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) http.Handler {
 	// looks like "sites/joonasfi-blog/versionid"
 	pathPrefix := bucketPrefix(appId, opts.DeployedVersion)
 
@@ -75,7 +74,7 @@ type s3Backend struct {
 	expectedETag string
 }
 
-func (s *s3Backend) Serve(w http.ResponseWriter, r *http.Request) {
+func (s *s3Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// cache hit?
 	// the header can list many ETags. instead of parsing it, string search is fine
 	// because ETags are enclosed in quotes

@@ -4,7 +4,6 @@ package peersetbackend
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"math/rand"
 	"net/http"
@@ -13,7 +12,7 @@ import (
 	"time"
 )
 
-func New(opts erconfig.BackendOptsPeerSet) (erbackend.Backend, error) {
+func New(opts erconfig.BackendOptsPeerSet) (http.Handler, error) {
 	peerAddrs := []*url.URL{}
 
 	for _, addr := range opts.Addrs {
@@ -58,6 +57,6 @@ type backend struct {
 	reverseProxy *httputil.ReverseProxy
 }
 
-func (b *backend) Serve(w http.ResponseWriter, r *http.Request) {
+func (b *backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b.reverseProxy.ServeHTTP(w, r)
 }

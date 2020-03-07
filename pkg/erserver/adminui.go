@@ -11,7 +11,7 @@ type adminBackendImpl struct {
 	tpl *template.Template
 }
 
-func newAdminBackend(fem *frontendMatchers) *adminBackendImpl {
+func newAdminBackend(fem *frontendMatchers) http.Handler {
 	tpl, err := template.New("_").Parse(`
 <html>
 <head>
@@ -40,7 +40,7 @@ func newAdminBackend(fem *frontendMatchers) *adminBackendImpl {
 	}
 }
 
-func (a *adminBackendImpl) Serve(w http.ResponseWriter, r *http.Request) {
+func (a *adminBackendImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := a.tpl.Execute(w, a.fem.Apps); err != nil {
 		log.Printf("adminui: template error: %v", err)
 	}

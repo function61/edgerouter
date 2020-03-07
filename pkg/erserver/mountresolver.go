@@ -2,8 +2,8 @@ package erserver
 
 import (
 	"errors"
-	"github.com/function61/edgerouter/pkg/erbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"net/http"
 	"regexp"
 	"sort"
 	"strings"
@@ -18,7 +18,7 @@ type Mount struct {
 	prefix      string
 	stripPrefix bool
 	App         erconfig.Application
-	backend     erbackend.Backend
+	backend     http.Handler
 }
 
 // these are ordered from longest to shortest

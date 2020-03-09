@@ -87,7 +87,7 @@ func newBackendCache() *backendCache {
 }
 
 func (b *backendCache) Find(appId string, configDigest []byte) *cacheEntry {
-	cached, found := bendCache.perAppId[appId]
+	cached, found := b.perAppId[appId]
 	if !found {
 		return nil
 	}

@@ -25,6 +25,7 @@ func makeBackend(
 		return nil, err
 	}
 
+	// only make new instance if config JSON has changed for this app ID
 	cached := bendCache.Find(appId, configDigest)
 	if cached == nil {
 		backend, err := makeBackendInternal(appId, backendConf, fem)

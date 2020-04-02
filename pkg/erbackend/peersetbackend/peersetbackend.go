@@ -40,6 +40,8 @@ func New(opts erconfig.BackendOptsPeerSet) (http.Handler, error) {
 
 	rand.Seed(time.Now().Unix())
 
+	// by default, the outgoing request includes the original "Host: ..." header, because
+	// usually this is what we want (the backend can see what hostname is in browser's address bar)
 	return &backend{&httputil.ReverseProxy{
 		Transport: transport,
 		Director: func(req *http.Request) {

@@ -75,7 +75,7 @@ func (s *swarmDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appli
 		return nil, err
 	}
 
-	bareContainers, err := discoverDockerContainers(ctx, s.dockerUrl, s.dockerClient)
+	bareContainers, err := discoverDockerContainers(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,12 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 	return services, nil
 }
 
-func discoverDockerContainers(ctx context.Context, dockerUrl string, dockerClient *http.Client) ([]Service, error) {
+func discoverDockerContainers(
+	ctx context.Context,
+	dockerUrl string,
+	dockerNetworkName string,
+	dockerClient *http.Client,
+) ([]Service, error) {
 	services := []Service{}
 
 	containers := []udocker.ContainerListItem{}
@@ -210,8 +215,20 @@ func discoverDockerContainers(ctx context.Context, dockerUrl string, dockerClien
 	}
 
 	for _, container := range containers {
-		bridgeSettings, hasBridge := container.NetworkSettings.Networks["bridge"]
-		if !hasBridge || len(container.Names) == 0 {
+		if len(container.Names) == 0 {
+			continue
+		}
+
+		ipAddress := ""
+		if settings, found := container.NetworkSettings.Networks[dockerNetworkName]; found {
+			ipAddress = settings.IPAddress // prefer IP from the asked dockerNetworkName
+		}
+
+		if settings, found := container.NetworkSettings.Networks["bridge"]; ipAddress == "" && found {
+			ipAddress = settings.IPAddress // fall back to bridge IP if not found
+		}
+
+		if ipAddress == "" {
 			continue
 		}
 
@@ -225,7 +242,7 @@ func discoverDockerContainers(ctx context.Context, dockerUrl string, dockerClien
 					DockerTaskId: container.Id,
 					NodeID:       "dummy",
 					NodeHostname: "dummy",
-					IPv4:         bridgeSettings.IPAddress,
+					IPv4:         ipAddress,
 				},
 			},
 		})

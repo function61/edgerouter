@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/peersetbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"net/http"
 )
 
 var bendCache = newBackendCache()

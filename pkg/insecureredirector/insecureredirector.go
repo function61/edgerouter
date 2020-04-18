@@ -3,10 +3,11 @@ package insecureredirector
 
 import (
 	"context"
-	"github.com/function61/gokit/httputils"
-	"github.com/function61/gokit/taskrunner"
 	"log"
 	"net/http"
+
+	"github.com/function61/gokit/httputils"
+	"github.com/function61/gokit/taskrunner"
 )
 
 func Serve(ctx context.Context, logger *log.Logger) error {

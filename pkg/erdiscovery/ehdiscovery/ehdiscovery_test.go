@@ -2,14 +2,15 @@ package ehdiscovery
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdomain"
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/eventhorizon/pkg/ehreader/ehreadertest"
 	"github.com/function61/gokit/assert"
-	"testing"
-	"time"
 )
 
 func TestDiscovery(t *testing.T) {

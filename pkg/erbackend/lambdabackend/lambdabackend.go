@@ -6,6 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -13,10 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
 )
 
 type lambdaBackend struct {

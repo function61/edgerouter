@@ -1,8 +1,9 @@
 package erconfig
 
 import (
-	"github.com/function61/gokit/assert"
 	"testing"
+
+	"github.com/function61/gokit/assert"
 )
 
 func TestSelfOrNilIfNoMeaningfulContent(t *testing.T) {

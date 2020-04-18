@@ -1,9 +1,10 @@
 package erserver
 
 import (
+	"testing"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/gokit/assert"
-	"testing"
 )
 
 func TestMain(t *testing.T) {

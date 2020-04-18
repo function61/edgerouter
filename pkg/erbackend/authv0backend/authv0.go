@@ -3,10 +3,11 @@ package authv0backend
 
 import (
 	"crypto/subtle"
-	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/httputils"
 	"net/http"
 	"strings"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/httputils"
 )
 
 func New(opts erconfig.BackendOptsAuthV0, authorizedBackend http.Handler) http.Handler {

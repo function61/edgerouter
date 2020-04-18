@@ -1,8 +1,9 @@
 package erserver
 
 import (
-	"github.com/function61/gokit/assert"
 	"testing"
+
+	"github.com/function61/gokit/assert"
 )
 
 func TestHostnameRegexpSyntaxToRegexp(t *testing.T) {

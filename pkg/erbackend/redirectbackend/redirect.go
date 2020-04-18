@@ -2,8 +2,9 @@
 package redirectbackend
 
 import (
-	"github.com/function61/edgerouter/pkg/erconfig"
 	"net/http"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 func New(opts erconfig.BackendOptsRedirect) http.Handler {

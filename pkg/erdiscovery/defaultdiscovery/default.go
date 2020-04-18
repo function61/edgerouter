@@ -3,10 +3,11 @@
 package defaultdiscovery
 
 import (
+	"log"
+
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/gokit/logex"
-	"log"
 )
 
 // currently uses ehdiscovery as default

@@ -2,10 +2,11 @@ package erserver
 
 import (
 	"context"
-	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/logex"
 	"log"
 	"time"
+
+	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/gokit/logex"
 )
 
 func scheduledSync(

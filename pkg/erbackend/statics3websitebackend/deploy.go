@@ -8,11 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/function61/edgerouter/pkg/awshelpers"
-	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,6 +16,12 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/function61/edgerouter/pkg/awshelpers"
+	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/edgerouter/pkg/erdiscovery"
 )
 
 type uploadJob struct {

@@ -2,11 +2,12 @@ package erserver
 
 import (
 	"errors"
-	"github.com/function61/edgerouter/pkg/erconfig"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 type hostnameRegexp struct {

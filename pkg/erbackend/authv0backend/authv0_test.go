@@ -1,11 +1,12 @@
 package authv0backend
 
 import (
-	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/assert"
 )
 
 // integration test because this is super important we get it right

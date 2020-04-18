@@ -7,13 +7,14 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/gokit/envvar"
-	"os"
 )
 
 func HasConfigInEnv() bool {

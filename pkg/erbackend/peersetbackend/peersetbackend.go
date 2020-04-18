@@ -4,12 +4,13 @@ package peersetbackend
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/function61/edgerouter/pkg/erconfig"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"time"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 func New(opts erconfig.BackendOptsPeerSet) (http.Handler, error) {

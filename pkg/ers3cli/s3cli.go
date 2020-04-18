@@ -4,12 +4,13 @@ package ers3cli
 import (
 	"context"
 	"errors"
+	"os"
+	"time"
+
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
 	"github.com/spf13/cobra"
-	"os"
-	"time"
 )
 
 func Entrypoint() *cobra.Command {

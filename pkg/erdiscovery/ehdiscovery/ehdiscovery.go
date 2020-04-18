@@ -3,6 +3,11 @@ package ehdiscovery
 
 import (
 	"context"
+	"log"
+	"sort"
+	"sync"
+	"time"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdomain"
@@ -10,10 +15,6 @@ import (
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/logex"
-	"log"
-	"sort"
-	"sync"
-	"time"
 )
 
 const (

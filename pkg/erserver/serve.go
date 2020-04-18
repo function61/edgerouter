@@ -4,6 +4,13 @@ package erserver
 import (
 	"context"
 	"crypto/tls"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync/atomic"
+	"time"
+
 	"github.com/felixge/httpsnoop"
 	"github.com/function61/certbus/pkg/certbus"
 	"github.com/function61/edgerouter/pkg/erconfig"
@@ -16,12 +23,6 @@ import (
 	"github.com/function61/gokit/httputils"
 	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/taskrunner"
-	"log"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync/atomic"
-	"time"
 )
 
 func Serve(ctx context.Context, logger *log.Logger) error {

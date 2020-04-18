@@ -3,8 +3,9 @@ package swarmdiscovery
 import (
 	"errors"
 	"fmt"
-	"github.com/function61/edgerouter/pkg/erconfig"
 	"strings"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 // find annotations from here:

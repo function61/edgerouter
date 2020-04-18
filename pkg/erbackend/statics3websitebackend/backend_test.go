@@ -1,8 +1,9 @@
 package statics3websitebackend
 
 import (
-	"github.com/function61/gokit/assert"
 	"testing"
+
+	"github.com/function61/gokit/assert"
 )
 
 func TestMakeETag(t *testing.T) {

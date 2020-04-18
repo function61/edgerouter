@@ -4,13 +4,14 @@ package statics3websitebackend
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/function61/edgerouter/pkg/erconfig"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) http.Handler {

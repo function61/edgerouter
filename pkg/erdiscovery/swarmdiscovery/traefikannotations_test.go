@@ -2,8 +2,9 @@ package swarmdiscovery
 
 import (
 	"encoding/json"
-	"github.com/function61/gokit/assert"
 	"testing"
+
+	"github.com/function61/gokit/assert"
 )
 
 type labels map[string]string

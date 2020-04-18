@@ -3,6 +3,7 @@ package erdiscovery
 
 import (
 	"context"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 )
 

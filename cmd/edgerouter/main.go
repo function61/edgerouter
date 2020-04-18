@@ -4,6 +4,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/function61/edgerouter/pkg/erlambdacli"
 	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
@@ -14,7 +16,6 @@ import (
 	"github.com/function61/gokit/ossignal"
 	"github.com/function61/gokit/taskrunner"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func main() {

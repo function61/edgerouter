@@ -4,15 +4,16 @@ package swarmdiscovery
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/gokit/envvar"
 	"github.com/function61/gokit/ezhttp"
 	"github.com/function61/gokit/udocker"
-	"log"
-	"net"
-	"net/http"
-	"os"
 )
 
 type Service struct {

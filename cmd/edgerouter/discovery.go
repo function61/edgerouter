@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
 	"github.com/function61/gokit/jsonfile"
 	"github.com/scylladb/termtables"
 	"github.com/spf13/cobra"
-	"io"
-	"os"
-	"strings"
-	"time"
 )
 
 func discoveryList() error {

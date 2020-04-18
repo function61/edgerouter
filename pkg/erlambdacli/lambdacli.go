@@ -4,10 +4,11 @@ package erlambdacli
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 func Entrypoint() *cobra.Command {

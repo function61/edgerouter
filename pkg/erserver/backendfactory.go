@@ -7,6 +7,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/peersetbackend"
+	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"net/http"
@@ -51,6 +52,8 @@ func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *fronte
 		return peersetbackend.New(*backendConf.PeerSetOpts)
 	case erconfig.BackendKindAwsLambda:
 		return lambdabackend.New(*backendConf.AwsLambdaOpts)
+	case erconfig.BackendKindRedirect:
+		return redirectbackend.New(*backendConf.RedirectOpts), nil
 	case erconfig.BackendKindEdgerouterAdmin:
 		return newAdminBackend(fem), nil
 	case erconfig.BackendKindAuthV0:

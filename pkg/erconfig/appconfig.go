@@ -77,6 +77,8 @@ func (a *Application) Validate() error {
 		return nil
 	case BackendKindAuthV0:
 		return a.Backend.AuthV0Opts.Validate()
+	case BackendKindRedirect:
+		return a.Backend.RedirectOpts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
 	}
@@ -94,6 +96,7 @@ const (
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
 	BackendKindAuthV0          BackendKind = "auth_v0"
+	BackendKindRedirect        BackendKind = "redirect"
 )
 
 type Backend struct {
@@ -102,6 +105,7 @@ type Backend struct {
 	PeerSetOpts         *BackendOptsPeerSet         `json:"peer_set_opts,omitempty"`
 	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
 	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
+	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
 }
 
 type BackendOptsS3StaticWebsite struct {
@@ -160,6 +164,18 @@ type BackendOptsAuthV0 struct {
 func (b *BackendOptsAuthV0) Validate() error {
 	if b.BearerToken == "" {
 		return emptyFieldErr("BearerToken")
+	}
+
+	return nil
+}
+
+type BackendOptsRedirect struct {
+	To string `json:"to"`
+}
+
+func (b *BackendOptsRedirect) Validate() error {
+	if b.To == "" {
+		return emptyFieldErr("To")
 	}
 
 	return nil

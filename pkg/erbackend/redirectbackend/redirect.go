@@ -8,15 +8,15 @@ import (
 )
 
 func New(opts erconfig.BackendOptsRedirect) http.Handler {
-	return &backend{
+	return &redirector{
 		to: opts.To,
 	}
 }
 
-type backend struct {
+type redirector struct {
 	to string
 }
 
-func (b *backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (b *redirector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, b.to, http.StatusFound)
 }

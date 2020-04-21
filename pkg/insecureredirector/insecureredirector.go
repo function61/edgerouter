@@ -21,7 +21,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 	tasks := taskrunner.New(ctx, logger)
 
-	tasks.Start("listener "+srv.Addr, func(_ context.Context, _ string) error {
+	tasks.Start("listener "+srv.Addr, func(_ context.Context) error {
 		return httputils.RemoveGracefulServerClosedError(srv.ListenAndServe())
 	})
 

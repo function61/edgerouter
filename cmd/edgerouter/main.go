@@ -52,14 +52,14 @@ func serveEntry() *cobra.Command {
 			mainLogger := logex.Prefix("main", rootLogger)
 			tasks := taskrunner.New(ossignal.InterruptOrTerminateBackgroundCtx(mainLogger), mainLogger)
 
-			tasks.Start("insecureredirector", func(ctx context.Context, taskName string) error {
-				return insecureredirector.Serve(ctx, logex.Prefix(taskName, rootLogger))
+			tasks.Start("insecureredirector", func(ctx context.Context) error {
+				return insecureredirector.Serve(ctx, logex.Prefix("insecureredirector", rootLogger))
 			})
-			tasks.Start("server", func(ctx context.Context, taskName string) error {
+			tasks.Start("server", func(ctx context.Context) error {
 				return erserver.Serve(ctx, rootLogger)
 			})
-			tasks.Start("metrics", func(ctx context.Context, taskName string) error {
-				return erserver.MetricsServer(ctx, logex.Prefix(taskName, rootLogger))
+			tasks.Start("metrics", func(ctx context.Context) error {
+				return erserver.MetricsServer(ctx, logex.Prefix("metrics", rootLogger))
 			})
 
 			if err := tasks.Wait(); err != nil {

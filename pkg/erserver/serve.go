@@ -119,20 +119,20 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 	tasks := taskrunner.New(ctx, logger)
 
-	tasks.Start("listener "+srv.Addr, func(_ context.Context, _ string) error {
+	tasks.Start("listener "+srv.Addr, func(_ context.Context) error {
 		return httputils.RemoveGracefulServerClosedError(srv.ListenAndServeTLS("", ""))
 	})
 
 	tasks.Start("listenershutdowner", httputils.ServerShutdownTask(srv))
 
-	tasks.Start("certbus sync", func(ctx context.Context, _ string) error { return certBus.Synchronizer(ctx) })
+	tasks.Start("certbus sync", func(ctx context.Context) error { return certBus.Synchronizer(ctx) })
 
-	tasks.Start("configsyncscheduler", func(ctx context.Context, taskName string) error {
+	tasks.Start("configsyncscheduler", func(ctx context.Context) error {
 		return scheduledSync(
 			ctx,
 			discovery,
 			configUpdated,
-			logex.Prefix(taskName, logger))
+			logex.Prefix("configsyncscheduler", logger))
 	})
 
 	for {

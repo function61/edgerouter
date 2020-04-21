@@ -35,10 +35,7 @@ func main() {
 		app.AddCommand(cmd)
 	}
 
-	if err := app.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	exitIfError(app.Execute())
 }
 
 func serveEntry() *cobra.Command {
@@ -62,9 +59,14 @@ func serveEntry() *cobra.Command {
 				return erserver.MetricsServer(ctx, logex.Prefix("metrics", rootLogger))
 			})
 
-			if err := tasks.Wait(); err != nil {
-				panic(err)
-			}
+			exitIfError(tasks.Wait())
 		},
+	}
+}
+
+func exitIfError(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

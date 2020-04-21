@@ -4,6 +4,7 @@ package ers3cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -24,9 +25,7 @@ func Entrypoint() *cobra.Command {
 		Short: "Deploys a static website to all edgerouter servers",
 		Args:  cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := s3Deploy(args[0], args[1], args[2]); err != nil {
-				panic(err)
-			}
+			exitIfError(s3Deploy(args[0], args[1], args[2]))
 		},
 	})
 
@@ -51,7 +50,7 @@ func s3Deploy(applicationId string, deployVersion string, pathToArchive string) 
 	defer cancel()
 
 	if err := statics3websitebackend.Deploy(ctx, tarArchive, applicationId, deployVersion, discoverySvc); err != nil {
-		return err
+		return fmt.Errorf("statics3websitebackend deploy: %w", err)
 	}
 
 	return nil
@@ -92,11 +91,18 @@ func s3MkEntry() *cobra.Command {
 		Short: "Create static website definition",
 		Args:  cobra.ExactArgs(5),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := s3Mk(args[0], args[1], args[2], stripPath, args[3], args[4]); err != nil {
-				panic(err)
-			}
+			exitIfError(s3Mk(args[0], args[1], args[2], stripPath, args[3], args[4]))
 		},
 	}
+
 	cmd.Flags().BoolVarP(&stripPath, "strip-path", "s", stripPath, "Strips path prefix before forwarding")
+
 	return cmd
+}
+
+func exitIfError(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

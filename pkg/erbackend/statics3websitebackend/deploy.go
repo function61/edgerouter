@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -40,7 +39,7 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, dep
 
 	app := erconfig.FindApplication(applicationId, apps)
 	if app == nil {
-		return errors.New("wrong applicationId")
+		return fmt.Errorf("unknown applicationId: %s", applicationId)
 	}
 
 	if app.Backend.Kind != erconfig.BackendKindS3StaticWebsite {
@@ -64,7 +63,7 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, dep
 	}
 
 	if err := uploadAllFiles(ctx, tarArchive, upload); err != nil {
-		return err
+		return fmt.Errorf("uploadAllFiles: %w", err)
 	}
 
 	// update deployed version pointer in the discovery to reflect changes

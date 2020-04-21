@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"mime"
 	"path"
 	"path/filepath"
 	"sync"
@@ -21,6 +20,7 @@ import (
 	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/gokit/mime"
 )
 
 type uploadJob struct {
@@ -166,10 +166,6 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	}
 
 	ext := filepath.Ext(filePath)
-	contentType := mime.TypeByExtension(ext)
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
 
 	// looks like "joonasfi-blog/versionid/"
 	pathPrefix := bucketPrefix(upload.applicationId, upload.deploymentSpec.Version) + "/"
@@ -181,7 +177,7 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	return &s3.PutObjectInput{
 		Bucket:      upload.bucket.Name,
 		Key:         aws.String(fullPath),
-		ContentType: aws.String(contentType),
+		ContentType: aws.String(mime.TypeByExtension(ext, mime.OctetStream)),
 		Body:        bytes.NewReader(wholeFileInMemory),
 	}, nil
 }

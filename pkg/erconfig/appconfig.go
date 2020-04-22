@@ -112,6 +112,7 @@ type BackendOptsS3StaticWebsite struct {
 	BucketName      string `json:"bucket_name"`
 	RegionId        string `json:"region_id"`
 	DeployedVersion string `json:"deployed_version"` // can be empty before first deployed version
+	NotFoundPage    string `json:"404_page"`         // (optional) ex: "404.html", relative to root of deployed site
 }
 
 func (b *BackendOptsS3StaticWebsite) Validate() error {

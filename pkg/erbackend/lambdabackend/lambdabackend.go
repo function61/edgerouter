@@ -100,10 +100,6 @@ func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-
-		if _, err := w.Write([]byte(err.Error())); err != nil {
-			log.Printf("error writing: %v", err)
-		}
 		return
 	}
 

@@ -60,7 +60,7 @@ func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *fronte
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
 			appId,
-			backendConf.AuthV0Opts.AuthorizedBackend,
+			*backendConf.AuthV0Opts.AuthorizedBackend,
 			fem)
 		if err != nil {
 			return nil, fmt.Errorf("authorizedBackend: %w", err)

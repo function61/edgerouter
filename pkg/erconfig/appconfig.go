@@ -158,13 +158,17 @@ func (b *BackendOptsAwsLambda) Validate() error {
 }
 
 type BackendOptsAuthV0 struct {
-	BearerToken       string  `json:"bearer_token"`
-	AuthorizedBackend Backend `json:"authorized_backend"`
+	BearerToken       string   `json:"bearer_token"`
+	AuthorizedBackend *Backend `json:"authorized_backend"`
 }
 
 func (b *BackendOptsAuthV0) Validate() error {
 	if b.BearerToken == "" {
 		return emptyFieldErr("BearerToken")
+	}
+
+	if b.AuthorizedBackend == nil {
+		return emptyFieldErr("AuthorizedBackend")
 	}
 
 	return nil
@@ -253,7 +257,7 @@ func AuthV0Backend(bearerToken string, authorizedBackend Backend) Backend {
 		Kind: BackendKindAuthV0,
 		AuthV0Opts: &BackendOptsAuthV0{
 			BearerToken:       bearerToken,
-			AuthorizedBackend: authorizedBackend,
+			AuthorizedBackend: &authorizedBackend,
 		},
 	}
 }

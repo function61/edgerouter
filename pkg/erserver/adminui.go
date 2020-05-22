@@ -1,18 +1,15 @@
 package erserver
 
 import (
+	"fmt"
 	"html/template"
-	"log"
 	"net/http"
+	"strings"
+
+	"github.com/function61/gokit/httputils"
 )
 
-type adminBackendImpl struct {
-	appDescriptions []string
-	tpl             *template.Template
-}
-
-func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
-	tpl, err := template.New("_").Parse(`
+const adminTpl = `
 <html>
 <head>
 	<title>edgerouter admin</title>
@@ -29,9 +26,33 @@ func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
 
 </body>
 </html>
-`)
+`
+
+func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
+	pageRendered, err := renderPage(fem)
 	if err != nil {
 		return nil, err
+	}
+
+	pages := http.NewServeMux()
+	pages.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// root handler is special that does catch-all, so we've to filter for it if
+		// we don't wish for everything to exist
+		if r.URL.Path != "/" {
+			httputils.Error(w, http.StatusNotFound)
+			return
+		}
+
+		fmt.Fprintln(w, pageRendered)
+	})
+
+	return pages, nil
+}
+
+func renderPage(fem *frontendMatchers) (string, error) {
+	tpl, err := template.New("_").Parse(adminTpl)
+	if err != nil {
+		return "", err
 	}
 
 	appDescriptions := []string{}
@@ -39,14 +60,11 @@ func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
 		appDescriptions = append(appDescriptions, app.Describe())
 	}
 
-	return &adminBackendImpl{
-		appDescriptions,
-		tpl,
-	}, nil
-}
+	pageRendered := &strings.Builder{}
 
-func (a *adminBackendImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := a.tpl.Execute(w, a.appDescriptions); err != nil {
-		log.Printf("adminui: template error: %v", err)
+	if err := tpl.Execute(pageRendered, appDescriptions); err != nil {
+		return "", fmt.Errorf("adminui: template error: %v", err)
 	}
+
+	return pageRendered.String(), nil
 }

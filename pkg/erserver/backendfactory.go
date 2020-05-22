@@ -56,7 +56,7 @@ func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *fronte
 	case erconfig.BackendKindRedirect:
 		return redirectbackend.New(*backendConf.RedirectOpts), nil
 	case erconfig.BackendKindEdgerouterAdmin:
-		return newAdminBackend(fem), nil
+		return newAdminBackend(fem)
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
 			appId,

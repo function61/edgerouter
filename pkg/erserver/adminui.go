@@ -7,11 +7,11 @@ import (
 )
 
 type adminBackendImpl struct {
-	fem *frontendMatchers
-	tpl *template.Template
+	appDescriptions []string
+	tpl             *template.Template
 }
 
-func newAdminBackend(fem *frontendMatchers) http.Handler {
+func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
 	tpl, err := template.New("_").Parse(`
 <html>
 <head>
@@ -22,7 +22,7 @@ func newAdminBackend(fem *frontendMatchers) http.Handler {
 
 <pre>
 {{range .}}
-{{.Describe}}
+{{.}}
 
 {{end}}
 </pre>
@@ -31,17 +31,22 @@ func newAdminBackend(fem *frontendMatchers) http.Handler {
 </html>
 `)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+
+	appDescriptions := []string{}
+	for _, app := range fem.Apps {
+		appDescriptions = append(appDescriptions, app.Describe())
 	}
 
 	return &adminBackendImpl{
-		fem,
+		appDescriptions,
 		tpl,
-	}
+	}, nil
 }
 
 func (a *adminBackendImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := a.tpl.Execute(w, a.fem.Apps); err != nil {
+	if err := a.tpl.Execute(w, a.appDescriptions); err != nil {
 		log.Printf("adminui: template error: %v", err)
 	}
 }

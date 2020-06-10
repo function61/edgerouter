@@ -22,7 +22,7 @@ const (
 )
 
 type ehDiscovery struct {
-	tenantCtx ehreader.TenantClient
+	tenantCtx ehreader.TenantCtx
 	reader    *ehreader.Reader
 	cursor    ehclient.Cursor
 	logl      *logex.Leveled
@@ -30,28 +30,22 @@ type ehDiscovery struct {
 	appsMu    sync.Mutex
 }
 
-func New(tenantCtx ehreader.TenantClient, logger *log.Logger) (erdiscovery.ReaderWriter, error) {
-	return &ehDiscovery{
+func New(tenantCtx ehreader.TenantCtx, logger *log.Logger) (erdiscovery.ReaderWriter, error) {
+	d := &ehDiscovery{
 		tenantCtx: tenantCtx,
-		reader:    ehreader.New(tenantCtx.Client, erdomain.Types),
 		cursor:    ehclient.Beginning(tenantCtx.Stream(stream)),
 		logl:      logex.Levels(logger),
 		apps:      map[string]erconfig.Application{},
-	}, nil
-}
-
-func NewWithConfigFromEnv(logger *log.Logger) (erdiscovery.ReaderWriter, error) {
-	tenantCtx, err := ehreader.TenantConfigFromEnv()
-	if err != nil {
-		return nil, err
 	}
 
-	return New(tenantCtx, logger)
+	d.reader = ehreader.New(d, tenantCtx.Client, logger)
+
+	return d, nil
 }
 
 func (d *ehDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
 	// this is essentially polling
-	if err := d.reader.LoadUntilRealtime(ctx, d); err != nil {
+	if err := d.reader.LoadUntilRealtime(ctx); err != nil {
 		return nil, err
 	}
 
@@ -72,17 +66,23 @@ func (d *ehDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Applicat
 func (d *ehDiscovery) UpdateApplication(ctx context.Context, app erconfig.Application) error {
 	updated := erdomain.NewAppUpdated(app, ehevent.MetaSystemUser(time.Now()))
 
-	return d.tenantCtx.Client.Append(ctx, d.tenantCtx.Stream(stream), []string{
+	_, err := d.tenantCtx.Client.Append(ctx, d.tenantCtx.Stream(stream), []string{
 		ehevent.Serialize(updated),
 	})
+	return err
 }
 
 func (d *ehDiscovery) DeleteApplication(ctx context.Context, app erconfig.Application) error {
 	deleted := erdomain.NewAppDeleted(app.Id, ehevent.MetaSystemUser(time.Now()))
 
-	return d.tenantCtx.Client.Append(ctx, d.tenantCtx.Stream(stream), []string{
+	_, err := d.tenantCtx.Client.Append(ctx, d.tenantCtx.Stream(stream), []string{
 		ehevent.Serialize(deleted),
 	})
+	return err
+}
+
+func (d *ehDiscovery) GetEventTypes() ehevent.Allocators {
+	return erdomain.Types
 }
 
 func (d *ehDiscovery) ProcessEvents(ctx context.Context, handle ehreader.EventProcessorHandler) error {

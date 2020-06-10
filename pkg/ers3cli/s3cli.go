@@ -11,6 +11,8 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
+	"github.com/function61/gokit/logex"
+	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +27,11 @@ func Entrypoint() *cobra.Command {
 		Short: "Deploys a static website to all edgerouter servers",
 		Args:  cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			exitIfError(s3Deploy(args[0], args[1], args[2]))
+			osutil.ExitIfError(s3Deploy(
+				osutil.CancelOnInterruptOrTerminate(logex.StandardLogger()),
+				args[0],
+				args[1],
+				args[2]))
 		},
 	})
 
@@ -34,7 +40,12 @@ func Entrypoint() *cobra.Command {
 	return app
 }
 
-func s3Deploy(applicationId string, deployVersion string, pathToArchive string) error {
+func s3Deploy(
+	ctx context.Context,
+	applicationId string,
+	deployVersion string,
+	pathToArchive string,
+) error {
 	discoverySvc, err := defaultdiscovery.New(nil)
 	if err != nil {
 		return err
@@ -46,7 +57,7 @@ func s3Deploy(applicationId string, deployVersion string, pathToArchive string) 
 	}
 	defer tarArchive.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
 	if err := statics3websitebackend.Deploy(ctx, tarArchive, applicationId, deployVersion, discoverySvc); err != nil {
@@ -91,18 +102,11 @@ func s3MkEntry() *cobra.Command {
 		Short: "Create static website definition",
 		Args:  cobra.ExactArgs(5),
 		Run: func(cmd *cobra.Command, args []string) {
-			exitIfError(s3Mk(args[0], args[1], args[2], stripPath, args[3], args[4]))
+			osutil.ExitIfError(s3Mk(args[0], args[1], args[2], stripPath, args[3], args[4]))
 		},
 	}
 
 	cmd.Flags().BoolVarP(&stripPath, "strip-path", "s", stripPath, "Strips path prefix before forwarding")
 
 	return cmd
-}
-
-func exitIfError(err error) {
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }

@@ -17,16 +17,16 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/gokit/aws/s3facade"
 	"github.com/function61/gokit/mime"
 )
 
 type uploadJob struct {
 	applicationId  string
 	deploymentSpec deploymentSpec
-	bucket         *awshelpers.BucketContext
+	bucket         *s3facade.BucketContext
 }
 
 // atomically deploys a new version of a site to a S3 bucket, then updates service
@@ -48,7 +48,10 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, dep
 
 	s3StaticWebsiteOpts := app.Backend.S3StaticWebsiteOpts
 
-	bucket, err := awshelpers.Bucket(s3StaticWebsiteOpts.BucketName, s3StaticWebsiteOpts.RegionId)
+	bucket, err := s3facade.Bucket(
+		s3StaticWebsiteOpts.BucketName,
+		s3facade.CredentialsFromEnv,
+		s3StaticWebsiteOpts.RegionId)
 	if err != nil {
 		return err
 	}

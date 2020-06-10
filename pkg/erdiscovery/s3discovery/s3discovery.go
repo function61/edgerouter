@@ -11,9 +11,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/gokit/aws/s3facade"
 	"github.com/function61/gokit/envvar"
 )
 
@@ -23,7 +23,7 @@ func HasConfigInEnv() bool {
 }
 
 type s3discovery struct {
-	bucket         *awshelpers.BucketContext
+	bucket         *s3facade.BucketContext
 	cachedRead     []erconfig.Application
 	cachedReadHash []byte
 }
@@ -39,7 +39,10 @@ func New() (erdiscovery.ReaderWriter, error) {
 		return nil, err
 	}
 
-	bucket, err := awshelpers.Bucket(bucketName, region)
+	bucket, err := s3facade.Bucket(
+		bucketName,
+		s3facade.CredentialsFromEnv,
+		region)
 	if err != nil {
 		return nil, err
 	}

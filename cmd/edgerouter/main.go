@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/function61/edgerouter/pkg/erlambdacli"
@@ -13,7 +12,7 @@ import (
 	"github.com/function61/eventhorizon/pkg/ehcli"
 	"github.com/function61/gokit/dynversion"
 	"github.com/function61/gokit/logex"
-	"github.com/function61/gokit/ossignal"
+	"github.com/function61/gokit/osutil"
 	"github.com/function61/gokit/taskrunner"
 	"github.com/spf13/cobra"
 )
@@ -31,11 +30,9 @@ func main() {
 	app.AddCommand(erlambdacli.Entrypoint())
 
 	// Event Horizon administration
-	for _, cmd := range ehcli.Entrypoints() {
-		app.AddCommand(cmd)
-	}
+	app.AddCommand(ehcli.Entrypoint())
 
-	exitIfError(app.Execute())
+	osutil.ExitIfError(app.Execute())
 }
 
 func serveEntry() *cobra.Command {
@@ -47,7 +44,7 @@ func serveEntry() *cobra.Command {
 			rootLogger := logex.StandardLogger()
 
 			mainLogger := logex.Prefix("main", rootLogger)
-			tasks := taskrunner.New(ossignal.InterruptOrTerminateBackgroundCtx(mainLogger), mainLogger)
+			tasks := taskrunner.New(osutil.CancelOnInterruptOrTerminate(mainLogger), mainLogger)
 
 			tasks.Start("insecureredirector", func(ctx context.Context) error {
 				return insecureredirector.Serve(ctx, logex.Prefix("insecureredirector", rootLogger))
@@ -59,14 +56,7 @@ func serveEntry() *cobra.Command {
 				return erserver.MetricsServer(ctx, logex.Prefix("metrics", rootLogger))
 			})
 
-			exitIfError(tasks.Wait())
+			osutil.ExitIfError(tasks.Wait())
 		},
-	}
-}
-
-func exitIfError(err error) {
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
 	}
 }

@@ -201,14 +201,14 @@ func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) 
 		return nil, err
 	}
 
-	tenantCtx, err := ehreader.TenantConfigFromEnv()
+	tenantCtx, err := ehreader.TenantCtxFrom(ehreader.ConfigFromEnv)
 	if err != nil {
 		return nil, err
 	}
 
 	certBus, err := certbus.New(
 		ctx,
-		tenantCtx,
+		*tenantCtx,
 		string(certBusPrivateKey),
 		logger)
 	if err != nil {

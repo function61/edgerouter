@@ -13,11 +13,10 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/function61/edgerouter/pkg/awshelpers"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/aws/s3facade"
 )
 
 type lambdaBackend struct {
@@ -26,15 +25,10 @@ type lambdaBackend struct {
 }
 
 func New(opts erconfig.BackendOptsAwsLambda) (http.Handler, error) {
-	creds, err := awshelpers.GetCredentials()
+	creds, err := s3facade.CredentialsFromEnv()
 	if err != nil {
 		return nil, err
 	}
-
-	manualCredential := credentials.NewStaticCredentials(
-		creds.AccessKeyId,
-		creds.AccessKeySecret,
-		"")
 
 	awsSession, err := session.NewSession()
 	if err != nil {
@@ -45,7 +39,7 @@ func New(opts erconfig.BackendOptsAwsLambda) (http.Handler, error) {
 		functionName: opts.FunctionName,
 		lambda: lambda.New(
 			awsSession,
-			aws.NewConfig().WithCredentials(manualCredential).WithRegion(opts.RegionId)),
+			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionId)),
 	}, nil
 }
 

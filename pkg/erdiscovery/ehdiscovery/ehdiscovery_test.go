@@ -21,9 +21,9 @@ func TestDiscovery(t *testing.T) {
 		"/t-42/loadbalancer",
 		erdomain.NewAppUpdated(testApp("testApp1"), ehevent.MetaSystemUser(time.Now())))
 
-	tenantCtx := ehreader.TenantId("42").Client(eventLog)
+	tenantCtx := ehreader.NewTenantCtx(ehreader.TenantId("42"), eventLog)
 
-	discovery, err := New(tenantCtx, nil)
+	discovery, err := New(*tenantCtx, nil)
 	assert.Ok(t, err)
 
 	apps, err := discovery.ReadApplications(ctx)

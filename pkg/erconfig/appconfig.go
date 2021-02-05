@@ -97,7 +97,7 @@ const (
 	BackendKindEdgerouterAdmin     BackendKind = "edgerouter_admin"
 	BackendKindAuthV0              BackendKind = "auth_v0"
 	BackendKindRedirect            BackendKind = "redirect"
-	BackendKindCachingReverseProxy BackendKind = "cachingreverseproxybackend"
+	BackendKindCachingReverseProxy BackendKind = "caching_reverse_proxy"
 )
 
 type Backend struct {

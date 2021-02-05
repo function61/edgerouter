@@ -323,8 +323,8 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	case BackendKindRedirect:
 		return string(b.Kind) + ":" + b.RedirectOpts.To
-       case BackendKindCachingReverseProxy:
-               return string(b.Kind) + ":" + b.CachingReverseProxyOpts.Origin
+	case BackendKindCachingReverseProxy:
+		return string(b.Kind) + ":" + b.CachingReverseProxyOpts.Origin
 	default:
 		return string(b.Kind)
 	}

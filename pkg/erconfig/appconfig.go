@@ -79,6 +79,8 @@ func (a *Application) Validate() error {
 		return a.Backend.AuthV0Opts.Validate()
 	case BackendKindRedirect:
 		return a.Backend.RedirectOpts.Validate()
+	case BackendKindCachingReverseProxy:
+		return a.Backend.CachingReverseProxyOpts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
 	}

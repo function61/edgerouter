@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine
 
 # for promswarmconnect
 ENV METRICS_ENDPOINT=:9090/metrics

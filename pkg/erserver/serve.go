@@ -52,6 +52,11 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 	atomicConfig := atomic.Value{}
 	atomicConfig.Store(initialConfig)
 
+	ipRules, err := loadIpRules()
+	if err != nil {
+		return err
+	}
+
 	serveRequest := func(w http.ResponseWriter, r *http.Request) *Mount {
 		// load latest config in threadsafe manner
 		config := atomicConfig.Load().(*frontendMatchers)
@@ -65,6 +70,12 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		mount := resolveMount(hostname, r.URL.Path, config)
 		if mount == nil {
 			http.Error(w, "no website for hostname: "+hostname, http.StatusNotFound)
+			return nil
+		}
+
+		// todo: respect x-forwarded-for headers but only if configured as trusted
+		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.Id, ipRules); !allowed {
+			http.Error(w, errStr, http.StatusForbidden)
 			return nil
 		}
 

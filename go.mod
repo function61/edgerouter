@@ -14,4 +14,5 @@ require (
 	github.com/prometheus/client_golang v1.4.1
 	github.com/scylladb/termtables v1.0.0
 	github.com/spf13/cobra v1.0.0
+	inet.af/netaddr v0.0.0-20210203214853-aa702495c49b // indirect
 )

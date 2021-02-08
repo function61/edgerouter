@@ -7,7 +7,7 @@ import (
 	"github.com/function61/gokit/assert"
 )
 
-func TestMain(t *testing.T) {
+func TestMountResolver(t *testing.T) {
 	apps := []erconfig.Application{
 		erconfig.SimpleApplication(
 			"examplecom-app",

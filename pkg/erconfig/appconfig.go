@@ -79,8 +79,6 @@ func (a *Application) Validate() error {
 		return a.Backend.AuthV0Opts.Validate()
 	case BackendKindRedirect:
 		return a.Backend.RedirectOpts.Validate()
-	case BackendKindCachingReverseProxy:
-		return a.Backend.CachingReverseProxyOpts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
 	}
@@ -93,23 +91,23 @@ func (a *Application) Validate() error {
 type BackendKind string
 
 const (
-	BackendKindS3StaticWebsite     BackendKind = "s3_static_website"
-	BackendKindPeerSet             BackendKind = "peer_set"
-	BackendKindAwsLambda           BackendKind = "aws_lambda"
-	BackendKindEdgerouterAdmin     BackendKind = "edgerouter_admin"
-	BackendKindAuthV0              BackendKind = "auth_v0"
-	BackendKindRedirect            BackendKind = "redirect"
-	BackendKindCachingReverseProxy BackendKind = "caching_reverse_proxy"
+	BackendKindS3StaticWebsite BackendKind = "s3_static_website"
+	BackendKindPeerSet         BackendKind = "peer_set"
+	BackendKindAwsLambda       BackendKind = "aws_lambda"
+	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
+	BackendKindAuthV0          BackendKind = "auth_v0"
+	BackendKindAuthSso         BackendKind = "auth_sso"
+	BackendKindRedirect        BackendKind = "redirect"
 )
 
 type Backend struct {
-	Kind                    BackendKind                     `json:"kind"`
-	S3StaticWebsiteOpts     *BackendOptsS3StaticWebsite     `json:"s3_static_website_opts,omitempty"`
-	PeerSetOpts             *BackendOptsPeerSet             `json:"peer_set_opts,omitempty"`
-	AwsLambdaOpts           *BackendOptsAwsLambda           `json:"aws_lambda_opts,omitempty"`
-	AuthV0Opts              *BackendOptsAuthV0              `json:"auth_v0_opts,omitempty"`
-	RedirectOpts            *BackendOptsRedirect            `json:"redirect_opts,omitempty"`
-	CachingReverseProxyOpts *BackendOptsCachingReverseProxy `json:"caching_reverse_proxy_opts,omitempty"`
+	Kind                BackendKind                 `json:"kind"`
+	S3StaticWebsiteOpts *BackendOptsS3StaticWebsite `json:"s3_static_website_opts,omitempty"`
+	PeerSetOpts         *BackendOptsPeerSet         `json:"peer_set_opts,omitempty"`
+	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
+	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
+	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
+	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
 }
 
 type BackendOptsS3StaticWebsite struct {
@@ -190,18 +188,6 @@ func (b *BackendOptsRedirect) Validate() error {
 	return nil
 }
 
-type BackendOptsCachingReverseProxy struct {
-	Origin string `json:"origin"`
-}
-
-func (b *BackendOptsCachingReverseProxy) Validate() error {
-	if b.Origin == "" {
-		return emptyFieldErr("Origin")
-	}
-
-	return nil
-}
-
 // factories
 
 func SimpleApplication(id string, frontend Frontend, backend Backend) Application {
@@ -271,15 +257,6 @@ func LambdaBackend(functionName string, regionId string) Backend {
 	}
 }
 
-func CachingReverseProxy(origin string) Backend {
-	return Backend{
-		Kind: BackendKindCachingReverseProxy,
-		CachingReverseProxyOpts: &BackendOptsCachingReverseProxy{
-			Origin: origin,
-		},
-	}
-}
-
 func EdgerouterAdminBackend() Backend {
 	return Backend{
 		Kind: BackendKindEdgerouterAdmin,
@@ -334,8 +311,6 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	case BackendKindRedirect:
 		return string(b.Kind) + ":" + b.RedirectOpts.To
-	case BackendKindCachingReverseProxy:
-		return string(b.Kind) + ":" + b.CachingReverseProxyOpts.Origin
 	default:
 		return string(b.Kind)
 	}

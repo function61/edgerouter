@@ -15,7 +15,7 @@ import (
 	"github.com/function61/certbus/pkg/certbus"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
+	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/swarmdiscovery"
 	"github.com/function61/eventhorizon/pkg/ehreader"
@@ -195,12 +195,19 @@ func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {
 		readers = append(readers, swarmDiscovery)
 	}
 
-	defaultDiscovery, err := defaultdiscovery.New(logger)
-	if err != nil {
-		return nil, err
-	}
+	if ehdiscovery.HasConfigInEnv() {
+		tenantCtx, err := ehreader.TenantCtxFrom(ehreader.ConfigFromEnv)
+		if err != nil {
+			return nil, fmt.Errorf("ehdiscovery: %w", err)
+		}
 
-	readers = append(readers, defaultDiscovery)
+		ehDiscovery, err := ehdiscovery.New(*tenantCtx, logex.Prefix("ehdiscovery", logger))
+		if err != nil {
+			return nil, fmt.Errorf("ehdiscovery: %w", err)
+		}
+
+		readers = append(readers, ehDiscovery)
+	}
 
 	return erdiscovery.MultiDiscovery(readers), nil
 }

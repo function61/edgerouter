@@ -4,6 +4,7 @@ package ehdiscovery
 import (
 	"context"
 	"log"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -20,6 +21,10 @@ import (
 const (
 	stream = "/loadbalancer"
 )
+
+func HasConfigInEnv() bool {
+	return os.Getenv("EVENTHORIZON") != ""
+}
 
 type ehDiscovery struct {
 	tenantCtx ehreader.TenantCtx

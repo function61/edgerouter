@@ -96,7 +96,6 @@ const (
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
 	BackendKindAuthV0          BackendKind = "auth_v0"
-	BackendKindAuthSso         BackendKind = "auth_sso"
 	BackendKindRedirect        BackendKind = "redirect"
 )
 
@@ -106,7 +105,6 @@ type Backend struct {
 	ReverseProxyOpts    *BackendOptsReverseProxy    `json:"reverse_proxy_opts,omitempty"`
 	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
 	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
-	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
 	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
 }
 

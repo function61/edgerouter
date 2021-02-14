@@ -12,19 +12,19 @@ func TestMountResolver(t *testing.T) {
 		erconfig.SimpleApplication(
 			"examplecom-app",
 			erconfig.SimpleHostnameFrontend("example.com", "/", false),
-			erconfig.PeerSetBackend([]string{"127.0.0.1"}, nil)),
+			erconfig.RedirectBackend("http://example.net/1")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-root",
 			erconfig.SimpleHostnameFrontend("docs.example.com", "/", false),
-			erconfig.PeerSetBackend([]string{"127.0.0.2"}, nil)),
+			erconfig.RedirectBackend("http://example.net/2")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-foo",
 			erconfig.SimpleHostnameFrontend("docs.example.com", "/foo", false),
-			erconfig.PeerSetBackend([]string{"127.0.0.3"}, nil)),
+			erconfig.RedirectBackend("http://example.net/3")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-bar",
 			erconfig.SimpleHostnameFrontend("docs.example.com", "/bar", false),
-			erconfig.PeerSetBackend([]string{"127.0.0.4"}, nil)),
+			erconfig.RedirectBackend("http://example.net/4")),
 	}
 
 	matchers, err := appsToFrontendMatchers(apps)

@@ -252,6 +252,15 @@ func PeerSetBackend(addrs []string, tlsConfig *TlsConfig) Backend {
 	}
 }
 
+func RedirectBackend(to string) Backend {
+	return Backend{
+		Kind: BackendKindRedirect,
+		RedirectOpts: &BackendOptsRedirect{
+			To: to,
+		},
+	}
+}
+
 func LambdaBackend(functionName string, regionId string) Backend {
 	return Backend{
 		Kind: BackendKindAwsLambda,

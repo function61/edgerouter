@@ -20,7 +20,7 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 	}
 
 	scheme := "http"
-	if proto, has := service.Labels["traefik.protocol"]; has {
+	if proto, specified := service.Labels["traefik.protocol"]; specified {
 		if proto != "http" && proto != "https" {
 			return nil, fmt.Errorf("unsupported protocol: %s", proto)
 		}
@@ -28,20 +28,25 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		scheme = proto
 	}
 
-	insecureSkipVerify := false
+	insecureSkipVerify, err := func() (bool, error) {
+		// doesn't actually seem to exist in Traefik:
+		//     https://github.com/containous/traefik/issues/2367
+		if insecureSkipVerifyString, has := service.Labels["traefik.backend.tls.insecureSkipVerify"]; has {
+			if insecureSkipVerifyString != "true" {
+				return false, fmt.Errorf("unsupported value for insecureSkipVerify: %s", insecureSkipVerifyString)
+			}
 
-	// doesn't actually seem to exist in Traefik:
-	//     https://github.com/containous/traefik/issues/2367
-	if insecureSkipVerifyString, has := service.Labels["traefik.backend.tls.insecureSkipVerify"]; has {
-		if insecureSkipVerifyString != "true" {
-			return nil, fmt.Errorf("unsupported value for insecureSkipVerify: %s", insecureSkipVerifyString)
+			if scheme != "https" {
+				return false, errors.New("insecureSkipVerify specified but not using https")
+			}
+
+			return true, nil
+		} else {
+			return false, nil
 		}
-
-		if scheme != "https" {
-			return nil, errors.New("insecureSkipVerify specified but not using https")
-		}
-
-		insecureSkipVerify = true
+	}()
+	if err != nil {
+		return nil, err
 	}
 
 	// also doesn't exist in Traefik

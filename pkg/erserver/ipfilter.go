@@ -73,9 +73,9 @@ func ruleForIp(ip netaddr.IP, rules []ipRule) *ipRule {
 
 // factories
 
-// funky signature to make sure we get at least one
-func allowOnlyApps(prefix netaddr.IPPrefix, app1 string, rest ...string) ipRule {
-	return ipRule{prefix, append([]string{app1}, rest...)}
+// funky signature to make sure we get at least one app (0 apps by accident would be catastrophic)
+func allowOnlyApps(prefix netaddr.IPPrefix, app1 string, appN ...string) ipRule {
+	return ipRule{prefix, append([]string{app1}, appN...)}
 }
 
 func allowAllApps(prefix netaddr.IPPrefix) ipRule {

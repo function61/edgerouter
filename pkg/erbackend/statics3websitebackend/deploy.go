@@ -178,10 +178,11 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	fullPath := path.Clean(pathPrefix + filePath)
 
 	return &s3.PutObjectInput{
-		Bucket:      upload.bucket.Name,
-		Key:         aws.String(fullPath),
-		ContentType: aws.String(mime.TypeByExtension(ext, mime.OctetStream)),
-		Body:        bytes.NewReader(wholeFileInMemory),
+		Bucket:       upload.bucket.Name,
+		Key:          aws.String(fullPath),
+		ContentType:  aws.String(mime.TypeByExtension(ext, mime.OctetStream)),
+		CacheControl: aws.String("max-age=31536000"), // 1 year (= "infinite caching"), because this versioned URL will never change
+		Body:         bytes.NewReader(wholeFileInMemory),
 	}, nil
 }
 

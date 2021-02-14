@@ -5,7 +5,7 @@
 	"builders": [
 		{
 			"name": "default",
-			"uses": "docker://fn61/buildkit-golang:20200910_1302_9f256d7b",
+			"uses": "docker://fn61/buildkit-golang:20210208_0951_8496e47f",
 			"mount_source": "",
 			"mount_destination": "/workspace",
 			"workdir": "/workspace",

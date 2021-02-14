@@ -108,7 +108,7 @@ func discoveryPut(content io.Reader, newOk bool) error {
 	}
 
 	if !newOk && !appAlreadyExists {
-		return errors.New("want to update App but it doesn't exist")
+		return errors.New("App doesn't exist. did you mean to create new with '--new'?")
 	}
 
 	return discoverySvc.UpdateApplication(ctx, *app)

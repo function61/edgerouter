@@ -69,8 +69,8 @@ func (a *Application) Validate() error {
 	switch a.Backend.Kind {
 	case BackendKindS3StaticWebsite:
 		return a.Backend.S3StaticWebsiteOpts.Validate()
-	case BackendKindPeerSet:
-		return a.Backend.PeerSetOpts.Validate()
+	case BackendKindReverseProxy:
+		return a.Backend.ReverseProxyOpts.Validate()
 	case BackendKindAwsLambda:
 		return a.Backend.AwsLambdaOpts.Validate()
 	case BackendKindEdgerouterAdmin:
@@ -92,7 +92,7 @@ type BackendKind string
 
 const (
 	BackendKindS3StaticWebsite BackendKind = "s3_static_website"
-	BackendKindPeerSet         BackendKind = "peer_set"
+	BackendKindReverseProxy    BackendKind = "reverse_proxy"
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
 	BackendKindAuthV0          BackendKind = "auth_v0"
@@ -103,7 +103,7 @@ const (
 type Backend struct {
 	Kind                BackendKind                 `json:"kind"`
 	S3StaticWebsiteOpts *BackendOptsS3StaticWebsite `json:"s3_static_website_opts,omitempty"`
-	PeerSetOpts         *BackendOptsPeerSet         `json:"peer_set_opts,omitempty"`
+	ReverseProxyOpts    *BackendOptsReverseProxy    `json:"reverse_proxy_opts,omitempty"`
 	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
 	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
 	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
@@ -129,14 +129,18 @@ func (b *BackendOptsS3StaticWebsite) Validate() error {
 	return nil
 }
 
-type BackendOptsPeerSet struct {
-	Addrs     []string   `json:"addrs"`
-	TlsConfig *TlsConfig `json:"tls_config,omitempty"`
+type BackendOptsReverseProxy struct {
+	Origins           []string   `json:"addrs"`
+	TlsConfig         *TlsConfig `json:"tls_config,omitempty"`
+	Caching           bool       `json:"caching"`                       // turn on response caching?
+	PassHostHeader    bool       `json:"pass_host_header"`              // use client-sent Host (=true) or origin's hostname? (=false) https://doc.traefik.io/traefik/routing/services/#pass-host-header
+	IndexDocument     string     `json:"index_document"`                // if request path ends in /foo/ ("directory"), rewrite it into /foo/index.html
+	RemoveQueryString bool       `json:"remove_query_string,omitempty"` // reduces cache misses if responses don't vary on qs
 }
 
-func (b *BackendOptsPeerSet) Validate() error {
-	if len(b.Addrs) == 0 {
-		return emptyFieldErr("Addrs")
+func (b *BackendOptsReverseProxy) Validate() error {
+	if len(b.Origins) == 0 {
+		return emptyFieldErr("Origins")
 	}
 
 	return nil
@@ -228,12 +232,13 @@ func S3Backend(bucketName string, regionId string, deployedVersion string) Backe
 	}
 }
 
-func PeerSetBackend(addrs []string, tlsConfig *TlsConfig) Backend {
+func ReverseProxyBackend(addrs []string, tlsConfig *TlsConfig, passHostHeader bool) Backend {
 	return Backend{
-		Kind: BackendKindPeerSet,
-		PeerSetOpts: &BackendOptsPeerSet{
-			Addrs:     addrs,
-			TlsConfig: tlsConfig,
+		Kind: BackendKindReverseProxy,
+		ReverseProxyOpts: &BackendOptsReverseProxy{
+			Origins:        addrs,
+			TlsConfig:      tlsConfig,
+			PassHostHeader: passHostHeader,
 		},
 	}
 }
@@ -303,8 +308,8 @@ func (b *Backend) Describe() string {
 	switch b.Kind {
 	case BackendKindS3StaticWebsite:
 		return string(b.Kind) + ":" + b.S3StaticWebsiteOpts.DeployedVersion
-	case BackendKindPeerSet:
-		return string(b.Kind) + ":" + strings.Join(b.PeerSetOpts.Addrs, ", ")
+	case BackendKindReverseProxy:
+		return string(b.Kind) + ":" + strings.Join(b.ReverseProxyOpts.Origins, ", ")
 	case BackendKindAwsLambda:
 		return string(b.Kind) + ":" + fmt.Sprintf("%s@%s", b.AwsLambdaOpts.FunctionName, b.AwsLambdaOpts.RegionId)
 	case BackendKindAuthV0:

@@ -90,7 +90,7 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		ServerName:         tlsServerName,
 	}
 
-	backend := erconfig.PeerSetBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent())
+	backend := erconfig.ReverseProxyBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent(), true)
 
 	// doesn't exist in Traefik
 	bearerToken, found := service.Labels["traefik.backend.auth_bearer_token"]

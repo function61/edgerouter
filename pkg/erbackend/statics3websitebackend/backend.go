@@ -17,6 +17,8 @@ func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, 
 		}), nil
 	}
 
+	// this is not much more than sugar on top of the much more powerful reverseproxybackend
+
 	bucketHost := "https://s3." + opts.RegionId + ".amazonaws.com/" + opts.BucketName + "/"
 
 	// looks like "sites/joonasfi-blog/versionid"

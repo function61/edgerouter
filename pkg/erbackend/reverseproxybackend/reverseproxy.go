@@ -47,8 +47,6 @@ func New(appId string, opts erconfig.BackendOptsReverseProxy) (http.Handler, err
 		return nil, err
 	}
 
-	// by default, the outgoing request includes the original "Host: ..." header, because
-	// usually this is what we want (the backend can see what hostname is in browser's address bar)
 	return &httputil.ReverseProxy{
 		Transport: transport,
 		Director: func(req *http.Request) {
@@ -66,10 +64,15 @@ func New(appId string, opts erconfig.BackendOptsReverseProxy) (http.Handler, err
 
 			req.URL.Scheme = originUrl.Scheme // "http" | "https"
 
-			if !opts.PassHostHeader {
-				req.URL.Host = originUrl.Host // can include port
-				req.Host = originUrl.Host     // needs to be present both in the request and the URL
+			// sometimes we want the outgoing request to include the original "Host: ..." header, so
+			// the backend can see what hostname is in browser's address bar
+			if opts.PassHostHeader {
+				req.URL.Host = req.Host // TODO: might include port, which is not kosher for URL.Host
+			} else {
+				req.URL.Host = originUrl.Host
 			}
+
+			req.Host = req.URL.Host // needs to be present both in the request and the URL
 
 			// origin's Path is "normally" empty (e.g. "http://example.com"), but can be used to add a prefix
 			req.URL.Path = originUrl.Path + req.URL.Path + maybeIndexSuffix

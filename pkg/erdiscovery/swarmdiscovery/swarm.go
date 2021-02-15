@@ -41,10 +41,16 @@ func New() (erdiscovery.Reader, error) {
 		return nil, err
 	}
 
-	dockerNetworkName, err := envvar.Required("NETWORK_NAME")
-	if err != nil {
-		return nil, err
-	}
+	dockerNetworkName := func() string {
+		if netName := os.Getenv("NETWORK_NAME"); netName != "" {
+			return netName
+		}
+
+		// TODO: log warning about missing NETWORK_NAME
+
+		// default to the bridge. this works in non-Swarm contexts and non-overlay networks
+		return "bridge"
+	}()
 
 	dockerClient, dockerUrlTransformed, err := udocker.Client(
 		dockerUrl,
@@ -197,6 +203,7 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 	return services, nil
 }
 
+// bare containers that are not necessarily a result of a Swarm service
 func discoverDockerContainers(
 	ctx context.Context,
 	dockerUrl string,
@@ -204,6 +211,26 @@ func discoverDockerContainers(
 	dockerClient *http.Client,
 ) ([]Service, error) {
 	services := []Service{}
+
+	// once (for lifetime of this function) = for caching and lazy evaluation because most times
+	// this is not needed
+	var gwbridgeNetworkInspectOnceCached *DockerNetworkInspectOutput
+	gwbridgeNetworkInspectOnce := func() (*DockerNetworkInspectOutput, error) {
+		if dockerNetworkName != "docker_gwbridge" { // not asking for docker_gwbridge
+			return nil, nil
+		}
+
+		if gwbridgeNetworkInspectOnceCached == nil {
+			var err error
+			gwbridgeNetworkInspectOnceCached, err = networkInspect(ctx, dockerNetworkName, dockerUrl, dockerClient)
+			if err != nil {
+				gwbridgeNetworkInspectOnceCached = nil // ensure nil on error
+				return nil, err
+			}
+		}
+
+		return gwbridgeNetworkInspectOnceCached, nil
+	}
 
 	containers := []udocker.ContainerListItem{}
 	if _, err := ezhttp.Get(
@@ -220,6 +247,8 @@ func discoverDockerContainers(
 			continue
 		}
 
+		// TODO: skip containers that result from services?
+
 		ipAddress := ""
 		if settings, found := container.NetworkSettings.Networks[dockerNetworkName]; found {
 			ipAddress = settings.IPAddress // prefer IP from the asked dockerNetworkName
@@ -227,6 +256,26 @@ func discoverDockerContainers(
 
 		if settings, found := container.NetworkSettings.Networks["bridge"]; ipAddress == "" && found {
 			ipAddress = settings.IPAddress // fall back to bridge IP if not found
+		}
+
+		// if container is attached to e.g. an overlay network, but Edgerouter sits e.g. in the host
+		// network namespace (= no direct connectivity to the overlay network), our last-ditch effort
+		// is to resolve its docker_gwbridge IP, but it is not visible from "$ docker inspect" output,
+		// but from "$ docker network inspect docker_gwbridge" instead
+		if ipAddress == "" {
+			gwbridgeNetworkInspectOutput, err := gwbridgeNetworkInspectOnce()
+			if err != nil {
+				return nil, err
+			}
+
+			if gwbridgeNetworkInspectOutput != nil { // nil = not using gwbridge
+				if networkDetails, found := gwbridgeNetworkInspectOutput.Containers[container.Id]; found {
+					// of course IP field needs subnet mask embedded in it ..
+					if ipWithoutCidr, _, err := net.ParseCIDR(networkDetails.IPv4Address); err == nil {
+						ipAddress = ipWithoutCidr.String()
+					}
+				}
+			}
 		}
 
 		if ipAddress == "" {
@@ -241,7 +290,7 @@ func discoverDockerContainers(
 			Instances: []ServiceInstance{
 				{
 					DockerTaskId: container.Id,
-					NodeID:       "dummy",
+					NodeID:       "dummy", // not applicable in bare container context
 					NodeHostname: "dummy",
 					IPv4:         ipAddress,
 				},
@@ -250,6 +299,22 @@ func discoverDockerContainers(
 	}
 
 	return services, nil
+}
+
+func networkInspect(
+	ctx context.Context,
+	dockerNetworkName string,
+	dockerUrl string,
+	dockerClient *http.Client,
+) (*DockerNetworkInspectOutput, error) {
+	output := &DockerNetworkInspectOutput{}
+
+	_, err := ezhttp.Get(
+		ctx, dockerUrl+networkInspectEndpoint(dockerNetworkName),
+		ezhttp.Client(dockerClient),
+		ezhttp.RespondsJson(output, true))
+
+	return output, err
 }
 
 func networkAttachmentForNetworkName(task udocker.Task, networkName string) *udocker.TaskNetworkAttachment {
@@ -270,4 +335,16 @@ func nodeById(id string, nodes []udocker.Node) *udocker.Node {
 	}
 
 	return nil
+}
+
+// TODO: these should be in gokit
+
+type DockerNetworkInspectOutput struct {
+	Containers map[string]*struct {
+		IPv4Address string `json:"IPv4Address"` // looks like 10.0.1.7/24
+	} `json:"Containers"`
+}
+
+func networkInspectEndpoint(networkId string) string {
+	return fmt.Sprintf("/v1.24/networks/%s", networkId)
 }

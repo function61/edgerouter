@@ -128,11 +128,11 @@ func (b *BackendOptsS3StaticWebsite) Validate() error {
 }
 
 type BackendOptsReverseProxy struct {
-	Origins           []string   `json:"addrs"`
+	Origins           []string   `json:"origins"`
 	TlsConfig         *TlsConfig `json:"tls_config,omitempty"`
-	Caching           bool       `json:"caching"`                       // turn on response caching?
-	PassHostHeader    bool       `json:"pass_host_header"`              // use client-sent Host (=true) or origin's hostname? (=false) https://doc.traefik.io/traefik/routing/services/#pass-host-header
-	IndexDocument     string     `json:"index_document"`                // if request path ends in /foo/ ("directory"), rewrite it into /foo/index.html
+	Caching           bool       `json:"caching,omitempty"`             // turn on response caching?
+	PassHostHeader    bool       `json:"pass_host_header,omitempty"`    // use client-sent Host (=true) or origin's hostname? (=false) https://doc.traefik.io/traefik/routing/services/#pass-host-header
+	IndexDocument     string     `json:"index_document,omitempty"`      // if request path ends in /foo/ ("directory"), rewrite it into /foo/index.html
 	RemoveQueryString bool       `json:"remove_query_string,omitempty"` // reduces cache misses if responses don't vary on qs
 }
 

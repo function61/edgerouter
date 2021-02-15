@@ -42,12 +42,13 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   ],
   "backend": {
-    "kind": "peer_set",
-    "peer_set_opts": {
-      "addrs": [
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": [
         "http://192.168.1.101:80",
         "http://192.168.1.102:80"
-      ]
+      ],
+      "pass_host_header": true
     }
   }
 }`),
@@ -64,11 +65,12 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   ],
   "backend": {
-    "kind": "peer_set",
-    "peer_set_opts": {
-      "addrs": [
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": [
         "https://192.168.1.101:443"
-      ]
+      ],
+      "pass_host_header": true
     }
   }
 }`),
@@ -86,14 +88,15 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   ],
   "backend": {
-    "kind": "peer_set",
-    "peer_set_opts": {
-      "addrs": [
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": [
         "https://192.168.1.101:443"
       ],
       "tls_config": {
         "insecure_skip_verify": true
-      }
+      },
+      "pass_host_header": true
     }
   }
 }`),
@@ -112,14 +115,15 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   ],
   "backend": {
-    "kind": "peer_set",
-    "peer_set_opts": {
-      "addrs": [
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": [
         "https://192.168.1.101:4486"
       ],
       "tls_config": {
         "server_name": "www.example.com"
-      }
+      },
+      "pass_host_header": true
     }
   }
 }`),
@@ -140,11 +144,12 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     "auth_v0_opts": {
       "bearer_token": "Hunter2",
       "authorized_backend": {
-        "kind": "peer_set",
-        "peer_set_opts": {
-          "addrs": [
+        "kind": "reverse_proxy",
+        "reverse_proxy_opts": {
+          "origins": [
             "http://192.168.1.101:80"
-          ]
+          ],
+          "pass_host_header": true
         }
       }
     }

@@ -65,5 +65,5 @@ func testApp(id string) erconfig.Application {
 	return erconfig.SimpleApplication(
 		id,
 		erconfig.SimpleHostnameFrontend("example.com", "/", false),
-		erconfig.PeerSetBackend([]string{"http://127.0.0.1/"}, nil))
+		erconfig.ReverseProxyBackend([]string{"http://127.0.0.1/"}, nil, false))
 }

@@ -39,11 +39,15 @@ func newFrontendMatchers(apps []erconfig.Application) *frontendMatchers {
 	}
 }
 
-func appsToFrontendMatchers(apps []erconfig.Application) (*frontendMatchers, error) {
+// transforms config (erconfig.Application) to concrerete instances (http.Handler) of backend for each app
+func appConfigToHandlersAndMatchers(
+	apps []erconfig.Application,
+	currentConfig erconfig.CurrentConfigAccessor,
+) (*frontendMatchers, error) {
 	fem := newFrontendMatchers(apps)
 
 	for _, app := range apps {
-		backend, err := makeBackend(app.Id, app.Backend, fem)
+		backend, err := makeBackend(app.Id, app.Backend, currentConfig)
 		if err != nil {
 			return nil, err
 		}

@@ -41,17 +41,21 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		return err
 	}
 
+	atomicConfig := atomic.Value{}
+	atomicConfig.Store(newFrontendMatchers([]erconfig.Application{})) // start with empty
+
+	currentConfig := func() []erconfig.Application { // enables to atomically read configuration at any time
+		return atomicConfig.Load().(*frontendMatchers).Apps
+	}
+
 	// initial sync so we won't start dealing out 404s when HTTP server starts
-	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, logl)
+	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logl)
 	if err != nil {
 		// not treating this as a fatal error though
 		logl.Error.Printf("initial sync failed: %v", err)
-
-		initialConfig = newFrontendMatchers([]erconfig.Application{})
+	} else {
+		atomicConfig.Store(initialConfig)
 	}
-
-	atomicConfig := atomic.Value{}
-	atomicConfig.Store(initialConfig)
 
 	ipRules, err := loadIpRules()
 	if err != nil {
@@ -144,6 +148,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			ctx,
 			discovery,
 			configUpdated,
+			currentConfig,
 			logex.Prefix("configsyncscheduler", logger))
 	})
 
@@ -160,6 +165,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 func syncAppsFromDiscovery(
 	ctx context.Context,
 	discovery erdiscovery.Reader,
+	currentConfig erconfig.CurrentConfigAccessor,
 	logl *logex.Leveled,
 ) (*frontendMatchers, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -172,7 +178,7 @@ func syncAppsFromDiscovery(
 
 	logl.Info.Printf("discovered %d app(s)", len(apps))
 
-	return appsToFrontendMatchers(apps)
+	return appConfigToHandlersAndMatchers(apps, currentConfig)
 }
 
 func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {

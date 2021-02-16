@@ -27,7 +27,7 @@ func TestMountResolver(t *testing.T) {
 			erconfig.RedirectBackend("http://example.net/4")),
 	}
 
-	matchers, err := appsToFrontendMatchers(apps)
+	matchers, err := appConfigToHandlersAndMatchers(apps, nil)
 	assert.Assert(t, err == nil)
 
 	assert.Assert(t, resolveMount("notfound.net", "/", matchers) == nil)

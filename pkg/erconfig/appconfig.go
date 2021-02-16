@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// can be used to fetch the current state of configuration - the apps Edgerouter knows *right now*,
+// based on all the discovery mechanisms used
+type CurrentConfigAccessor func() []Application
+
 type FrontendKind string
 
 const (

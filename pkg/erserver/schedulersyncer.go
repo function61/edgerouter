@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/gokit/logex"
 )
@@ -13,6 +14,7 @@ func scheduledSync(
 	ctx context.Context,
 	discovery erdiscovery.Reader,
 	configUpdated chan<- *frontendMatchers,
+	currentConfig erconfig.CurrentConfigAccessor,
 	logger *log.Logger,
 ) error {
 	logl := logex.Levels(logger)
@@ -28,7 +30,7 @@ func scheduledSync(
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			conf, err := syncAppsFromDiscovery(ctx, discovery, logl)
+			conf, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logl)
 			if err != nil {
 				logl.Error.Printf("syncAppsFromDiscovery: %v", err)
 				continue

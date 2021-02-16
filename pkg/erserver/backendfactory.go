@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
+	"github.com/function61/edgerouter/pkg/erbackend/edgerouteradminbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
@@ -16,11 +17,10 @@ import (
 
 var bendCache = newBackendCache()
 
-// TODO: make "fem" parameteter unnecessary
 func makeBackend(
 	appId string,
 	backendConf erconfig.Backend,
-	fem *frontendMatchers,
+	currentConfig erconfig.CurrentConfigAccessor,
 ) (http.Handler, error) {
 	configDigest, err := json.Marshal(backendConf)
 	if err != nil {
@@ -30,7 +30,7 @@ func makeBackend(
 	// only make new instance if config JSON has changed for this app ID
 	cached := bendCache.Find(appId, configDigest)
 	if cached == nil {
-		backend, err := makeBackendInternal(appId, backendConf, fem)
+		backend, err := makeBackendInternal(appId, backendConf, currentConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,12 @@ func makeBackend(
 	return cached.backend, nil
 }
 
-func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *frontendMatchers) (http.Handler, error) {
+// called when actually making a new backend, instead of using a cached one
+func makeBackendInternal(
+	appId string,
+	backendConf erconfig.Backend,
+	currentConfig erconfig.CurrentConfigAccessor,
+) (http.Handler, error) {
 	switch backendConf.Kind {
 	case erconfig.BackendKindS3StaticWebsite:
 		return statics3websitebackend.New(appId, *backendConf.S3StaticWebsiteOpts)
@@ -56,12 +61,12 @@ func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *fronte
 	case erconfig.BackendKindRedirect:
 		return redirectbackend.New(*backendConf.RedirectOpts), nil
 	case erconfig.BackendKindEdgerouterAdmin:
-		return newAdminBackend(fem)
+		return edgerouteradminbackend.New(currentConfig)
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
 			appId,
 			*backendConf.AuthV0Opts.AuthorizedBackend,
-			fem)
+			currentConfig)
 		if err != nil {
 			return nil, fmt.Errorf("authorizedBackend: %w", err)
 		}
@@ -77,6 +82,9 @@ func makeBackendInternal(appId string, backendConf erconfig.Backend, fem *fronte
 // connections since the connection cache is per http.Transport
 // NOTE: no need for locking, because makeBackend() is not called concurrently
 type backendCache struct {
+	// the cache data structure might seem unusual. that's because we don't want multiple cache
+	// entries per one app - we want GC to be able to clean up no-longer-used handlers
+
 	perAppId map[string]*cacheEntry
 }
 

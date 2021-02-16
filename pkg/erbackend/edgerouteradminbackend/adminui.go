@@ -1,12 +1,12 @@
-package erserver
+// Admin panel for Edgerouter
+package edgerouteradminbackend
 
 import (
-	"fmt"
 	"html/template"
+	"io"
 	"net/http"
-	"strings"
 
-	"github.com/function61/gokit/httputils"
+	"github.com/function61/edgerouter/pkg/erconfig"
 )
 
 const adminTpl = `
@@ -28,43 +28,32 @@ const adminTpl = `
 </html>
 `
 
-func newAdminBackend(fem *frontendMatchers) (http.Handler, error) {
-	pageRendered, err := renderPage(fem)
-	if err != nil {
-		return nil, err
-	}
-
+func New(currentConfig erconfig.CurrentConfigAccessor) (http.Handler, error) {
 	pages := http.NewServeMux()
 	pages.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// root handler is special that does catch-all, so we've to filter for it if
 		// we don't wish for everything to exist
 		if r.URL.Path != "/" {
-			httputils.Error(w, http.StatusNotFound)
+			http.NotFound(w, r)
 			return
 		}
 
-		fmt.Fprintln(w, pageRendered)
+		_ = renderPage(currentConfig, w)
 	})
 
 	return pages, nil
 }
 
-func renderPage(fem *frontendMatchers) (string, error) {
+func renderPage(apps erconfig.CurrentConfigAccessor, output io.Writer) error {
 	tpl, err := template.New("_").Parse(adminTpl)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	appDescriptions := []string{}
-	for _, app := range fem.Apps {
+	for _, app := range apps() {
 		appDescriptions = append(appDescriptions, app.Describe())
 	}
 
-	pageRendered := &strings.Builder{}
-
-	if err := tpl.Execute(pageRendered, appDescriptions); err != nil {
-		return "", fmt.Errorf("adminui: template error: %v", err)
-	}
-
-	return pageRendered.String(), nil
+	return tpl.Execute(output, appDescriptions)
 }

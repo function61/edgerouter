@@ -15,10 +15,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cozy/httpcache"
+	"github.com/cozy/httpcache/diskcache"
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/gregjones/httpcache"
-	"github.com/gregjones/httpcache/diskcache"
 )
+
+// using fork of gregjones/httpcache because the project is "done" and it disastrously caches 304
+// responses. replication:
+//   1) request something that goes in cache
+//   2) stop Edgerouter, empty cache. start Edgerouter
+//   3) press F5 from browser. this'll inject 304 Not Modified into cache (browser expects 304 but CACHE NOT)
+//   4) now use cURL to request the same resource (= without caching), and you'll get 304 🤦
 
 func init() {
 	rand.Seed(time.Now().Unix())

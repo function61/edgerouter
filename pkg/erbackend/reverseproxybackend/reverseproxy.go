@@ -32,6 +32,14 @@ func init() {
 }
 
 func New(appId string, opts erconfig.BackendOptsReverseProxy) (http.Handler, error) {
+	return NewWithModifyResponse(appId, opts, nil)
+}
+
+func NewWithModifyResponse(
+	appId string,
+	opts erconfig.BackendOptsReverseProxy,
+	modifyResponse func(r *http.Response) error,
+) (http.Handler, error) {
 	originUrls, err := parseOriginUrls(opts.Origins) // guarantees >= 1 items
 	if err != nil {
 		return nil, fmt.Errorf("reverseproxybackend: %w", err)
@@ -90,6 +98,7 @@ func New(appId string, opts erconfig.BackendOptsReverseProxy) (http.Handler, err
 				req.URL.RawQuery = ""
 			}
 		},
+		ModifyResponse: modifyResponse,
 	}, nil
 }
 

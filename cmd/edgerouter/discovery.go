@@ -14,6 +14,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
 	"github.com/function61/gokit/jsonfile"
+	"github.com/function61/gokit/osutil"
 	"github.com/scylladb/termtables"
 	"github.com/spf13/cobra"
 )
@@ -122,9 +123,7 @@ func discoveryPutEntry() *cobra.Command {
 		Short: "Update discovery config for application",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := discoveryPut(os.Stdin, newOk); err != nil {
-				panic(err)
-			}
+			osutil.ExitIfError(discoveryPut(os.Stdin, newOk))
 		},
 	}
 
@@ -168,9 +167,7 @@ func discoveryEntry() *cobra.Command {
 		Short: "Lists applications",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := discoveryList(); err != nil {
-				panic(err)
-			}
+			osutil.ExitIfError(discoveryList())
 		},
 	})
 
@@ -179,9 +176,7 @@ func discoveryEntry() *cobra.Command {
 		Short: "Dump discovery config for application",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := discoveryCat(args[0]); err != nil {
-				panic(err)
-			}
+			osutil.ExitIfError(discoveryCat(args[0]))
 		},
 	})
 
@@ -192,9 +187,7 @@ func discoveryEntry() *cobra.Command {
 		Short: "Delete application",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := discoveryDeleteApplication(args[0]); err != nil {
-				panic(err)
-			}
+			osutil.ExitIfError(discoveryDeleteApplication(args[0]))
 		},
 	})
 

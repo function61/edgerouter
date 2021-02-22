@@ -2,6 +2,7 @@ package erserver
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"sort"
@@ -49,7 +50,7 @@ func appConfigToHandlersAndMatchers(
 	for _, app := range apps {
 		backend, err := makeBackend(app.Id, app.Backend, currentConfig)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("makeBackend: %s: %w", app.Id, err)
 		}
 
 		for _, frontend := range app.Frontends {

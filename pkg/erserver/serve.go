@@ -4,6 +4,7 @@ package erserver
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -173,7 +174,7 @@ func syncAppsFromDiscovery(
 
 	apps, err := discovery.ReadApplications(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ReadApplications: %w", err)
 	}
 
 	logl.Info.Printf("discovered %d app(s)", len(apps))

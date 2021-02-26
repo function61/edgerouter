@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/dynversion"
 )
 
 const adminTpl = `
@@ -18,12 +19,13 @@ const adminTpl = `
 <body>
 
 <pre>
-{{range .}}
+{{range .Apps}}
 {{.}}
 
 {{end}}
 </pre>
 
+<p>Version {{.Version}}</p>
 </body>
 </html>
 `
@@ -55,5 +57,8 @@ func renderPage(apps erconfig.CurrentConfigAccessor, output io.Writer) error {
 		appDescriptions = append(appDescriptions, app.Describe())
 	}
 
-	return tpl.Execute(output, appDescriptions)
+	return tpl.Execute(output, struct {
+		Apps    []string
+		Version string
+	}{appDescriptions, dynversion.Version})
 }

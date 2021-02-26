@@ -1,4 +1,4 @@
-// Discovers applications from Docker Swarm cluster
+// Discovers applications from Docker and/or Docker Swarm cluster. TODO: rename to dockerdiscovery
 package swarmdiscovery
 
 import (
@@ -17,7 +17,7 @@ import (
 )
 
 type Service struct {
-	Name      string
+	Name      string // container name for bare containers, service name for Swarm/compose services
 	Image     string
 	Labels    map[string]string
 	ENVs      map[string]string
@@ -243,6 +243,7 @@ func discoverDockerContainers(
 	}
 
 	for _, container := range containers {
+		// I don't know if this ever happens
 		if len(container.Names) == 0 {
 			continue
 		}
@@ -282,8 +283,16 @@ func discoverDockerContainers(
 			continue
 		}
 
+		// use swarm service name if defined, so we get stable names ("baikal_baikal") instead of
+		// "/baikal_baikal.1.mifsjkoi93gwh9yg89c51va0t" for Swarm-based containers. normally we don't
+		// use this discoverDockerContainers() but Swarm, but if we use docker_gwbridge this is how
+		// we discover conainers outside of Swarm network contexts
+		serviceName := coalesce(
+			container.Labels["com.docker.swarm.service.name"],
+			container.Names[0])
+
 		services = append(services, Service{
-			Name:   container.Names[0],
+			Name:   serviceName,
 			Image:  container.Image,
 			Labels: container.Labels,
 			ENVs:   map[string]string{},
@@ -347,4 +356,14 @@ type DockerNetworkInspectOutput struct {
 
 func networkInspectEndpoint(networkId string) string {
 	return fmt.Sprintf("/v1.24/networks/%s", networkId)
+}
+
+func coalesce(items ...string) string {
+	for _, item := range items {
+		if item != "" {
+			return item
+		}
+	}
+
+	return ""
 }

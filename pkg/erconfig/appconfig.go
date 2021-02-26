@@ -50,7 +50,7 @@ func (f *Frontend) Validate() error {
 }
 
 type Application struct {
-	Id        string     `json:"id"`
+	Id        string     `json:"id"` // ACLs can reference this, so keep stable (i.e. service replicas/restarts should not affect this)
 	Frontends []Frontend `json:"frontends"`
 	Backend   Backend    `json:"backend"`
 }

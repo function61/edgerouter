@@ -97,8 +97,13 @@ github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSw
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/function61/certbus v0.0.0-20200610105055-ece09e1d40da h1:RwT3MlkXqXIYFRWWer+najXW03gVJu9i8P+OKnBzdHQ=
 github.com/function61/certbus v0.0.0-20200610105055-ece09e1d40da/go.mod h1:91ojH/iOfF++Xj9nzj3m9j+is1CSJs4DGxJWe3876H4=
+github.com/function61/certbus v0.0.0-20210302130024-b0f78984be22 h1:UMCiDK3RYa80dKKWCzG4l71dNlnoBdmPUq3CDLB0wXE=
+github.com/function61/certbus v0.0.0-20210302130024-b0f78984be22/go.mod h1:Uh7a66ejwD+QCc/95UShA/tLzu80e8J3k6hnhfOplZI=
+github.com/function61/eventhorizon v0.2.1-0.20200227140656-f89fe5d462ca/go.mod h1:SztwDAaqWnLPSFyVmV0zbBgRsvExr0GzrlOj9sWTC+Y=
 github.com/function61/eventhorizon v0.2.1-0.20200610093004-78aa8b3a710f h1:O8sCfSzDr5FdN+QyOao4+Ak3gXE8DVWCy/5G8jMq2Bs=
 github.com/function61/eventhorizon v0.2.1-0.20200610093004-78aa8b3a710f/go.mod h1:ahYueOlhtRXqpV3zhnM4o0JUul8BkXaeiKlBfnm9XsE=
+github.com/function61/gokit v0.0.0-20200226141201-fe205250686d/go.mod h1:jAkW2pwxa4N3qxEUDA3zDhfiJInBfF4BjsbkWAU13aU=
+github.com/function61/gokit v0.0.0-20200307135016-6dd948616ce0/go.mod h1:f6JhYQwMbwfAX472K/2A46CKet7BrpugMzuCobtqPQo=
 github.com/function61/gokit v0.0.0-20200521131320-a74cacc8928e/go.mod h1:qkZftFp+nvc6BitjWRb9GXS4A1tQ2BuASctzscHa9Io=
 github.com/function61/gokit v0.0.0-20200608105953-12235c68c38b h1:oSy6OCp5pk+hObohgNR7MT2Yj1A3f61fAuVnT/D0lJE=
 github.com/function61/gokit v0.0.0-20200608105953-12235c68c38b/go.mod h1:qkZftFp+nvc6BitjWRb9GXS4A1tQ2BuASctzscHa9Io=

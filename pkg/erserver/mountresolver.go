@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 )
@@ -30,13 +31,15 @@ type frontendMatchers struct {
 	Hostname       map[string]MountList // hostname equality
 	hostnameRegexp []hostnameRegexp
 	Apps           []erconfig.Application
+	timestamp      time.Time
 }
 
-func newFrontendMatchers(apps []erconfig.Application) *frontendMatchers {
+func newFrontendMatchers(apps []erconfig.Application, timestamp time.Time) *frontendMatchers {
 	return &frontendMatchers{
 		Hostname:       map[string]MountList{},
 		hostnameRegexp: []hostnameRegexp{},
 		Apps:           apps,
+		timestamp:      timestamp,
 	}
 }
 
@@ -44,8 +47,9 @@ func newFrontendMatchers(apps []erconfig.Application) *frontendMatchers {
 func appConfigToHandlersAndMatchers(
 	apps []erconfig.Application,
 	currentConfig erconfig.CurrentConfigAccessor,
+	timestamp time.Time,
 ) (*frontendMatchers, error) {
-	fem := newFrontendMatchers(apps)
+	fem := newFrontendMatchers(apps, timestamp)
 
 	for _, app := range apps {
 		backend, err := makeBackend(app.Id, app.Backend, currentConfig)

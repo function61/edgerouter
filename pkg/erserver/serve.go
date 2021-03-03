@@ -41,12 +41,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		return err
 	}
 
-	atomicConfig := atomic.Value{}
-	atomicConfig.Store(newFrontendMatchers([]erconfig.Application{})) // start with empty
-
-	currentConfig := func() []erconfig.Application { // enables to atomically read configuration at any time
-		return atomicConfig.Load().(*frontendMatchers).Apps
-	}
+	currentConfig := newAtomicConfig()
 
 	// initial sync so we won't start dealing out 404s when HTTP server starts
 	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logl)
@@ -54,7 +49,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		// not treating this as a fatal error though
 		logl.Error.Printf("initial sync failed: %v", err)
 	} else {
-		atomicConfig.Store(initialConfig)
+		currentConfig.Store(initialConfig)
 	}
 
 	ipRules, err := loadIpRules()
@@ -64,7 +59,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 	serveRequest := func(w http.ResponseWriter, r *http.Request) *Mount {
 		// load latest config in threadsafe manner
-		config := atomicConfig.Load().(*frontendMatchers)
+		config := currentConfig.Load().(*frontendMatchers)
 
 		hostname, _, err := nonStupidSplitHostPort(r.Host)
 		if err != nil {
@@ -157,7 +152,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		case err := <-tasks.Done():
 			return err
 		case config := <-configUpdated:
-			atomicConfig.Store(config)
+			currentConfig.Store(config)
 		}
 	}
 }
@@ -241,4 +236,27 @@ func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) 
 	}
 
 	return certBus, nil
+}
+
+type atomicConfig struct {
+	atomic.Value // stores *frontendMatchers
+}
+
+var _ erconfig.CurrentConfigAccessor = (*atomicConfig)(nil)
+
+func newAtomicConfig() *atomicConfig {
+	// dummy value for "not updated yet"
+	year2000 := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC) // youtu.be/kmzpdd4pWvM
+	a := &atomicConfig{}
+	a.Store(newFrontendMatchers([]erconfig.Application{}, year2000)) // start with empty
+	return a
+}
+
+// atomically read configuration at any time
+func (a *atomicConfig) Apps() []erconfig.Application {
+	return a.Load().(*frontendMatchers).Apps
+}
+
+func (a *atomicConfig) LastUpdated() time.Time {
+	return a.Load().(*frontendMatchers).timestamp
 }

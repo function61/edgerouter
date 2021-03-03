@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/gokit/dynversion"
@@ -25,7 +26,8 @@ const adminTpl = `
 {{end}}
 </pre>
 
-<p>Version {{.Version}}</p>
+<p>Version: {{.Version}}</p>
+<p>LastUpdated: {{.LastUpdated}}</p>
 </body>
 </html>
 `
@@ -46,19 +48,24 @@ func New(currentConfig erconfig.CurrentConfigAccessor) (http.Handler, error) {
 	return pages, nil
 }
 
-func renderPage(apps erconfig.CurrentConfigAccessor, output io.Writer) error {
+func renderPage(currentConfig erconfig.CurrentConfigAccessor, output io.Writer) error {
 	tpl, err := template.New("_").Parse(adminTpl)
 	if err != nil {
 		return err
 	}
 
 	appDescriptions := []string{}
-	for _, app := range apps() {
+	for _, app := range currentConfig.Apps() {
 		appDescriptions = append(appDescriptions, app.Describe())
 	}
 
 	return tpl.Execute(output, struct {
-		Apps    []string
-		Version string
-	}{appDescriptions, dynversion.Version})
+		Apps        []string
+		Version     string
+		LastUpdated string
+	}{
+		Apps:        appDescriptions,
+		Version:     dynversion.Version,
+		LastUpdated: currentConfig.LastUpdated().Format(time.RFC3339),
+	})
 }

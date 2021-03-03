@@ -97,6 +97,13 @@ func NewWithModifyResponse(
 			if opts.RemoveQueryString {
 				req.URL.RawQuery = ""
 			}
+
+			// use case: security camera has Basic auth, but we don't trust it to be able
+			// to secure itself, so we front it with a reverse proxy that does proper
+			// access control, and simulate user sending basic auth by having the proxy do it
+			for forcedHeaderKey, value := range opts.HeadersToOrigin {
+				req.Header.Set(forcedHeaderKey, value)
+			}
 		},
 		ModifyResponse: modifyResponse,
 	}, nil

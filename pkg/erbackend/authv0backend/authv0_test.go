@@ -15,6 +15,10 @@ func TestIntegration(t *testing.T) {
 		authMiddleware := New(erconfig.BackendOptsAuthV0{
 			BearerToken: "correctToken",
 		}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get(authorizationHeaderKey) != "" {
+				panic("got authorization header in origin")
+			}
+
 			_, _ = w.Write([]byte("welcome to admin section"))
 		}))
 
@@ -66,7 +70,7 @@ func makeReq(authHeader string) *http.Request {
 		panic(err)
 	}
 
-	req.Header.Set("Authorization", authHeader)
+	req.Header.Set(authorizationHeaderKey, authHeader)
 
 	return req
 }

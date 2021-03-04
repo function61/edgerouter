@@ -85,6 +85,8 @@ func (a *Application) Validate() error {
 		return nil
 	case BackendKindAuthV0:
 		return a.Backend.AuthV0Opts.Validate()
+	case BackendKindAuthSso:
+		return a.Backend.AuthSsoOpts.Validate()
 	case BackendKindRedirect:
 		return a.Backend.RedirectOpts.Validate()
 	default:
@@ -104,6 +106,7 @@ const (
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
 	BackendKindAuthV0          BackendKind = "auth_v0"
+	BackendKindAuthSso         BackendKind = "auth_sso"
 	BackendKindRedirect        BackendKind = "redirect"
 )
 
@@ -113,6 +116,7 @@ type Backend struct {
 	ReverseProxyOpts    *BackendOptsReverseProxy    `json:"reverse_proxy_opts,omitempty"`
 	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
 	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
+	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
 	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
 }
 
@@ -182,6 +186,26 @@ func (b *BackendOptsAuthV0) Validate() error {
 
 	if b.AuthorizedBackend == nil {
 		return emptyFieldErr("AuthorizedBackend")
+	}
+
+	return nil
+}
+
+type BackendOptsAuthSso struct {
+	IdServerUrl       string   `json:"id_server_url,omitempty"`
+	AllowedUserIds    []string `json:"allowed_user_ids"`
+	Audience          string   `json:"audience"`
+	AuthorizedBackend *Backend `json:"authorized_backend"` // ptr for validation
+}
+
+func (b *BackendOptsAuthSso) Validate() error {
+	if b.AuthorizedBackend == nil {
+		return emptyFieldErr("AuthorizedBackend")
+	}
+
+	// temporarily disabled due to prod conf
+	if b.Audience == "" {
+		return emptyFieldErr("Audience")
 	}
 
 	return nil
@@ -285,6 +309,23 @@ func AuthV0Backend(bearerToken string, authorizedBackend Backend) Backend {
 	}
 }
 
+func AuthSsoBackend(
+	idServerUrl string,
+	allowedUserIds []string,
+	audience string,
+	authorizedBackend Backend,
+) Backend {
+	return Backend{
+		Kind: BackendKindAuthSso,
+		AuthSsoOpts: &BackendOptsAuthSso{
+			IdServerUrl:       idServerUrl,
+			AllowedUserIds:    allowedUserIds,
+			Audience:          audience,
+			AuthorizedBackend: &authorizedBackend,
+		},
+	}
+}
+
 // describers
 
 func (a *Application) Describe() string {
@@ -320,9 +361,11 @@ func (b *Backend) Describe() string {
 	case BackendKindAwsLambda:
 		return string(b.Kind) + ":" + fmt.Sprintf("%s@%s", b.AwsLambdaOpts.FunctionName, b.AwsLambdaOpts.RegionId)
 	case BackendKindAuthV0:
-		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
+		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken=...] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	case BackendKindRedirect:
 		return string(b.Kind) + ":" + b.RedirectOpts.To
+	case BackendKindAuthSso:
+		return string(b.Kind) + ":" + fmt.Sprintf("[audience=%s] -> %s", b.AuthSsoOpts.Audience, b.AuthSsoOpts.AuthorizedBackend.Describe())
 	default:
 		return string(b.Kind)
 	}

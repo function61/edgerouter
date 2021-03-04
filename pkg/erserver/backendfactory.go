@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/function61/edgerouter/pkg/erbackend/authssobackend"
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
 	"github.com/function61/edgerouter/pkg/erbackend/edgerouteradminbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
@@ -72,6 +73,16 @@ func makeBackendInternal(
 		}
 
 		return authv0backend.New(*backendConf.AuthV0Opts, authorizedBackend), nil
+	case erconfig.BackendKindAuthSso:
+		authorizedBackend, err := makeBackendInternal(
+			appId,
+			*backendConf.AuthSsoOpts.AuthorizedBackend,
+			currentConfig)
+		if err != nil {
+			return nil, fmt.Errorf("authorizedBackend: %w", err)
+		}
+
+		return authssobackend.New(*backendConf.AuthSsoOpts, authorizedBackend)
 	default:
 		return nil, fmt.Errorf("unsupported backend kind: %s", backendConf.Kind)
 	}

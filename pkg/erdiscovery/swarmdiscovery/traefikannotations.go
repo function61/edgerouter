@@ -90,23 +90,49 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		ServerName:         tlsServerName,
 	}
 
-	backend := erconfig.ReverseProxyBackend(addrs, tlsConfig.SelfOrNilIfNoMeaningfulContent(), true)
+	backend := erconfig.ReverseProxyBackend(
+		addrs,
+		tlsConfig.SelfOrNilIfNoMeaningfulContent(),
+		true)
 
-	// doesn't exist in Traefik
-	bearerToken, found := service.Labels["traefik.backend.auth_bearer_token"]
-	if found {
-		if bearerToken == "" {
-			return nil, errors.New("empty bearer token not supported")
+	// maybe wrap in auth backend
+	backendAuthorized, err := func() (erconfig.Backend, error) {
+		switch service.Labels["edgerouter.auth"] {
+		case "public":
+			// we require explicit opt-in to this for security, so missing keys don't accidentally expose sensitive endpoints
+			return backend, nil // no wrapping
+		case "bearer_token":
+			bearerToken := service.Labels["edgerouter.auth_bearer_token"]
+			if bearerToken == "" {
+				return erconfig.Backend{}, errors.New("empty bearer token not supported")
+			}
+
+			return erconfig.AuthV0Backend(bearerToken, backend), nil
+		case "sso":
+			tenant := service.Labels["edgerouter.auth_sso.tenant"]
+			if tenant == "" {
+				return erconfig.Backend{}, errors.New("edgerouter.auth_sso.tenant empty")
+			}
+
+			// looks like t-2/monitoring_prometheus
+			audience := fmt.Sprintf("%s/%s", tenant, service.Name)
+
+			// is not a security issue if empty (nobody gets through then)
+			users := strings.Split(service.Labels["edgerouter.auth_sso.users"], ",")
+
+			return erconfig.AuthSsoBackend("", users, audience, backend), nil
+		default:
+			return erconfig.Backend{}, fmt.Errorf("unsupported auth mode: %s", service.Labels["edgerouter.auth"])
 		}
-
-		// wrap in auth backend
-		backend = erconfig.AuthV0Backend(bearerToken, backend)
+	}()
+	if err != nil {
+		return nil, err
 	}
 
 	app := erconfig.SimpleApplication(
 		service.Name,
 		frontend,
-		backend)
+		backendAuthorized)
 
 	return &app, nil
 }

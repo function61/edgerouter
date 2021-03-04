@@ -1,5 +1,5 @@
-// Discovers applications from Docker and/or Docker Swarm cluster. TODO: rename to dockerdiscovery
-package swarmdiscovery
+// Discovers applications from Docker and/or Docker Swarm cluster
+package dockerdiscovery
 
 import (
 	"context"
@@ -63,20 +63,20 @@ func New() (erdiscovery.Reader, error) {
 	// for unix sockets we need to fake "http://localhost"
 	dockerUrl = dockerUrlTransformed
 
-	return &swarmDiscovery{
+	return &dockerDiscovery{
 		dockerNetworkName: dockerNetworkName,
 		dockerUrl:         dockerUrl,
 		dockerClient:      dockerClient,
 	}, nil
 }
 
-type swarmDiscovery struct {
+type dockerDiscovery struct {
 	dockerNetworkName string
 	dockerUrl         string
 	dockerClient      *http.Client
 }
 
-func (s *swarmDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
+func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
 	swarmServices, err := discoverSwarmServices(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient)
 	if err != nil {
 		return nil, err

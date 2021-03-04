@@ -1,4 +1,4 @@
-package swarmdiscovery
+package dockerdiscovery
 
 import (
 	"encoding/json"

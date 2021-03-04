@@ -16,9 +16,9 @@ import (
 	"github.com/function61/certbus/pkg/certbus"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/edgerouter/pkg/erdiscovery/dockerdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
-	"github.com/function61/edgerouter/pkg/erdiscovery/swarmdiscovery"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/envvar"
 	"github.com/function61/gokit/httputils"
@@ -188,13 +188,13 @@ func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {
 		readers = append(readers, s3Discovery)
 	}
 
-	if swarmdiscovery.HasConfigInEnv() {
-		swarmDiscovery, err := swarmdiscovery.New()
+	if dockerdiscovery.HasConfigInEnv() {
+		docker, err := dockerdiscovery.New()
 		if err != nil {
 			return nil, err
 		}
 
-		readers = append(readers, swarmDiscovery)
+		readers = append(readers, docker)
 	}
 
 	if ehdiscovery.HasConfigInEnv() {

@@ -181,12 +181,19 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 			})
 		}
 
-		services = append(services, Service{
-			Name:      dockerService.Spec.Name,
-			Image:     dockerService.Spec.TaskTemplate.ContainerSpec.Image,
-			Labels:    dockerService.Spec.Labels,
-			Instances: instances,
-		})
+		// instances now contains the IP endpoints we know for the service (for *NETWORK_NAME*)
+
+		// no reason to "advertise" a service without any instances, especially because we won't try
+		// container-based discovery for services we return from here (we might still find IPs for
+		// those even if we fail here)
+		if len(instances) > 0 {
+			services = append(services, Service{
+				Name:      dockerService.Spec.Name,
+				Image:     dockerService.Spec.TaskTemplate.ContainerSpec.Image,
+				Labels:    dockerService.Spec.Labels,
+				Instances: instances,
+			})
+		}
 	}
 
 	return services, nil
@@ -237,8 +244,6 @@ func discoverDockerContainers(
 		if len(container.Names) == 0 {
 			continue
 		}
-
-		// TODO: skip containers that result from services?
 
 		ipAddress := ""
 		if settings, found := container.NetworkSettings.Networks[dockerNetworkName]; found {

@@ -93,7 +93,7 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 	for _, service := range swarmServicesAndBareContainers {
 		app, err := traefikAnnotationsToApp(service)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(fmt.Errorf("%s: traefikAnnotationsToApp: %w", service.Name, err).Error())
 			continue
 		}
 		if app == nil { // non-error skip

@@ -173,7 +173,12 @@ func syncAppsFromDiscovery(
 
 	logl.Info.Printf("discovered %d app(s)", len(apps))
 
-	return appConfigToHandlersAndMatchers(apps, currentConfig)
+	matchers, err := appConfigToHandlersAndMatchers(apps, currentConfig, time.Now())
+	if err != nil {
+		return nil, fmt.Errorf("appConfigToHandlersAndMatchers: %w", err)
+	}
+
+	return matchers, nil
 }
 
 func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {

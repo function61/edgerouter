@@ -20,7 +20,6 @@ type Service struct {
 	Name      string // container name for bare containers, service name for Swarm/compose services
 	Image     string
 	Labels    map[string]string
-	ENVs      map[string]string
 	Instances []ServiceInstance
 }
 
@@ -182,20 +181,10 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 			})
 		}
 
-		envs := map[string]string{}
-
-		for _, envSerialized := range dockerService.Spec.TaskTemplate.ContainerSpec.Env {
-			envKey, envVal := envvar.Parse(envSerialized)
-			if envKey != "" {
-				envs[envKey] = envVal
-			}
-		}
-
 		services = append(services, Service{
 			Name:      dockerService.Spec.Name,
 			Image:     dockerService.Spec.TaskTemplate.ContainerSpec.Image,
 			Labels:    dockerService.Spec.Labels,
-			ENVs:      envs,
 			Instances: instances,
 		})
 	}
@@ -302,7 +291,6 @@ func discoverDockerContainers(
 			Name:   serviceName,
 			Image:  container.Image,
 			Labels: container.Labels,
-			ENVs:   map[string]string{},
 			Instances: []ServiceInstance{
 				{
 					DockerTaskId: container.Id,

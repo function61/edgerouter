@@ -82,7 +82,7 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 		return nil, err
 	}
 
-	bareContainers, err := discoverDockerContainers(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient)
+	bareContainers, err := discoverDockerContainers(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient, swarmServices)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +209,7 @@ func discoverDockerContainers(
 	dockerUrl string,
 	dockerNetworkName string,
 	dockerClient *http.Client,
+	alreadyDiscoveredFromSwarm []Service,
 ) ([]Service, error) {
 	services := []Service{}
 
@@ -291,6 +292,12 @@ func discoverDockerContainers(
 			container.Labels["com.docker.swarm.service.name"],
 			container.Names[0])
 
+		// if already found from Swarm catalogue, don't add from bare container discovery
+		// (so we don't end up with duplicates)
+		if svcsContains(alreadyDiscoveredFromSwarm, serviceName) {
+			continue
+		}
+
 		services = append(services, Service{
 			Name:   serviceName,
 			Image:  container.Image,
@@ -366,4 +373,14 @@ func coalesce(items ...string) string {
 	}
 
 	return ""
+}
+
+func svcsContains(services []Service, name string) bool {
+	for _, svc := range services {
+		if svc.Name == name {
+			return true
+		}
+	}
+
+	return false
 }

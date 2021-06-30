@@ -2,6 +2,7 @@ package erserver
 
 import (
 	"testing"
+	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/gokit/assert"
@@ -27,7 +28,7 @@ func TestMountResolver(t *testing.T) {
 			erconfig.RedirectBackend("http://example.net/4")),
 	}
 
-	matchers, err := appConfigToHandlersAndMatchers(apps, nil)
+	matchers, err := appConfigToHandlersAndMatchers(apps, nil, time.Date(2021, 6, 30, 15, 17, 0, 0, time.UTC))
 	assert.Assert(t, err == nil)
 
 	assert.Assert(t, resolveMount("notfound.net", "/", matchers) == nil)

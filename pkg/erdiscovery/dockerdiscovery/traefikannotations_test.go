@@ -31,6 +31,7 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
 
 	tcs := []testCase{
 		mkTestCase("simpleHost", ip101And102, labels{
+			"edgerouter.auth":       "public",
 			"traefik.frontend.rule": "Host:www.example.com",
 		}, `{
   "id": "simpleHost",
@@ -53,6 +54,7 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
   }
 }`),
 		mkTestCase("simpleHostHttps", ip101, labels{
+			"edgerouter.auth":       "public",
 			"traefik.frontend.rule": "Host:www.example.com",
 			"traefik.protocol":      "https",
 		}, `{
@@ -75,6 +77,7 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
   }
 }`),
 		mkTestCase("simpleHostHttpsInsecureSkipVerify", ip101, labels{
+			"edgerouter.auth":                        "public",
 			"traefik.frontend.rule":                  "Host:www.example.com",
 			"traefik.protocol":                       "https",
 			"traefik.backend.tls.insecureSkipVerify": "true",
@@ -101,6 +104,7 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
   }
 }`),
 		mkTestCase("regexpTlsWithPortAndServerName", ip101, labels{
+			"edgerouter.auth":                "public",
 			"traefik.frontend.rule":          "HostRegexp:traefik.{[^.]+}.example.com",
 			"traefik.protocol":               "https",
 			"traefik.port":                   "4486",
@@ -128,8 +132,9 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
   }
 }`),
 		mkTestCase("authorized", ip101, labels{
-			"traefik.frontend.rule":             "Host:example.com",
-			"traefik.backend.auth_bearer_token": "Hunter2",
+			"traefik.frontend.rule":        "Host:example.com",
+			"edgerouter.auth":              "bearer_token",
+			"edgerouter.auth_bearer_token": "Hunter2",
 		}, `{
   "id": "authorized",
   "frontends": [

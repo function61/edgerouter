@@ -187,6 +187,15 @@ func syncAppsFromDiscovery(
 		return nil, fmt.Errorf("ReadApplications: %w", err)
 	}
 
+	if metricsEndpoint := os.Getenv("METRICS_ENDPOINT"); metricsEndpoint != "" {
+		prom := erconfig.SimpleApplication(
+			"prom-metrics",
+			erconfig.CatchAllHostnamesFrontend(erconfig.PathPrefix(metricsEndpoint), erconfig.AllowInsecureHTTP),
+			erconfig.PromMetricsBackend())
+
+		apps = append(apps, prom)
+	}
+
 	logl.Info.Printf("discovered %d app(s)", len(apps))
 
 	matchers, err := appConfigToHandlersAndMatchers(apps, currentConfig, time.Now())

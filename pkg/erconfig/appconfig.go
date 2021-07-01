@@ -257,6 +257,11 @@ func RegexpHostnameFrontend(hostnameRegexp string, options ...FrontendOpt) Front
 	}
 }
 
+// catches all requests (essentially accepting all hostnames)
+func CatchAllHostnamesFrontend(options ...FrontendOpt) Frontend {
+	return RegexpHostnameFrontend("{.+}", options...)
+}
+
 func S3Backend(bucketName string, regionId string, deployedVersion string) Backend {
 	return Backend{
 		Kind: BackendKindS3StaticWebsite,

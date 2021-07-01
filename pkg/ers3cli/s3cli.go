@@ -86,9 +86,14 @@ func s3Mk(applicationId string, hostname string, path string, stripPath bool, bu
 		return errors.New("application already exists")
 	}
 
+	opts := []erconfig.FrontendOpt{erconfig.PathPrefix(path)}
+	if stripPath {
+		opts = append(opts, erconfig.StripPathPrefix)
+	}
+
 	app := erconfig.SimpleApplication(
 		applicationId,
-		erconfig.SimpleHostnameFrontend(hostname, path, stripPath),
+		erconfig.SimpleHostnameFrontend(hostname, opts...),
 		erconfig.S3Backend(bucketName, regionId, "")) // version is empty for now - no deployment yet
 
 	return discoverySvc.UpdateApplication(ctx, app)

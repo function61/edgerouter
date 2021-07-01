@@ -235,20 +235,25 @@ func SimpleApplication(id string, frontend Frontend, backend Backend) Applicatio
 	}
 }
 
-func SimpleHostnameFrontend(hostname string, pathPrefix string, stripPath bool) Frontend {
+func SimpleHostnameFrontend(hostname string, options ...FrontendOpt) Frontend {
+	opts := getFrontendOptions(options)
+
 	return Frontend{
 		Kind:            FrontendKindHostname,
 		Hostname:        hostname,
-		PathPrefix:      pathPrefix,
-		StripPathPrefix: stripPath,
+		PathPrefix:      opts.pathPrefix,
+		StripPathPrefix: opts.stripPathPrefix,
 	}
 }
 
-func RegexpHostnameFrontend(hostnameRegexp string, pathPrefix string) Frontend {
+func RegexpHostnameFrontend(hostnameRegexp string, options ...FrontendOpt) Frontend {
+	opts := getFrontendOptions(options)
+
 	return Frontend{
-		Kind:           FrontendKindHostnameRegexp,
-		HostnameRegexp: hostnameRegexp,
-		PathPrefix:     pathPrefix,
+		Kind:            FrontendKindHostnameRegexp,
+		HostnameRegexp:  hostnameRegexp,
+		PathPrefix:      opts.pathPrefix,
+		StripPathPrefix: opts.stripPathPrefix,
 	}
 }
 
@@ -392,6 +397,35 @@ func (t *TlsConfig) SelfOrNilIfNoMeaningfulContent() *TlsConfig {
 	}
 }
 
+// TODO: gokit/builtin
 func emptyFieldErr(fieldName string) error {
 	return fmt.Errorf("field %s cannot be empty", fieldName)
 }
+
+// frontend options builder
+type frontendOptions struct {
+	pathPrefix      string
+	stripPathPrefix bool
+}
+
+func getFrontendOptions(fns []FrontendOpt) frontendOptions {
+	opts := &frontendOptions{
+		pathPrefix: "/",
+	}
+
+	for _, fn := range fns {
+		fn(opts)
+	}
+
+	return *opts
+}
+
+type FrontendOpt func(opts *frontendOptions)
+
+func PathPrefix(pathPrefix string) FrontendOpt {
+	return func(opts *frontendOptions) {
+		opts.pathPrefix = pathPrefix
+	}
+}
+
+func StripPathPrefix(opts *frontendOptions) { opts.stripPathPrefix = true }

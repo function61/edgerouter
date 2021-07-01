@@ -21,7 +21,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/envvar"
-	"github.com/function61/gokit/httputils"
 	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/taskrunner"
 )
@@ -52,6 +51,8 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		currentConfig.Store(initialConfig)
 	}
 
+	// TODO: if these rules have syntax error, it'd be good if it came up before other async tasks
+	//       are started.
 	ipRules, err := loadIpRules()
 	if err != nil {
 		return err
@@ -92,49 +93,48 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		return mount
 	}
 
-	srv := &http.Server{
-		Addr: ":443",
-		TLSConfig: &tls.Config{
-			// this integrates CertBus into your server - certificates are fetched
-			// dynamically from CertBus's dynamically managed state
-			GetCertificate: certBus.GetCertificateAdapter(),
-		},
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var mount *Mount
-			// see for greatly written rationale https://github.com/felixge/httpsnoop
-			// tl;dr: response snooping is hard without losing Websocket etc. support
-			stats := httpsnoop.CaptureMetrics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				mount = serveRequest(w, r)
-			}), w, r)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var mount *Mount
+		// see for greatly written rationale https://github.com/felixge/httpsnoop
+		// tl;dr: response snooping is hard without losing Websocket etc. support
+		stats := httpsnoop.CaptureMetrics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mount = serveRequest(w, r)
+		}), w, r)
 
-			appId := func() string {
-				if mount == nil {
-					return "appNotFound"
-				} else {
-					return mount.App.Id
-				}
-			}()
-
-			if stats.Code < 400 {
-				incAppCodeMethodCounter(metrics.requestsOk, appId, strconv.Itoa(stats.Code), r.Method)
+		appId := func() string {
+			if mount == nil {
+				return "appNotFound"
 			} else {
-				incAppCodeMethodCounter(metrics.requestsFail, appId, strconv.Itoa(stats.Code), r.Method)
+				return mount.App.Id
 			}
+		}()
 
-			metrics.requestDuration.WithLabelValues(appId).Observe(stats.Duration.Seconds())
-			metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
-		}),
-	}
+		if stats.Code < 400 {
+			incAppCodeMethodCounter(metrics.requestsOk, appId, strconv.Itoa(stats.Code), r.Method)
+		} else {
+			incAppCodeMethodCounter(metrics.requestsFail, appId, strconv.Itoa(stats.Code), r.Method)
+		}
+
+		metrics.requestDuration.WithLabelValues(appId).Observe(stats.Duration.Seconds())
+		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
+	})
 
 	configUpdated := make(chan *frontendMatchers, 1)
 
 	tasks := taskrunner.New(ctx, logger)
+	tasks.Start("listener :443", func(ctx context.Context) error {
+		srv := &http.Server{
+			Addr: ":443",
+			TLSConfig: &tls.Config{
+				// this integrates CertBus into your server - certificates are fetched
+				// dynamically from CertBus's dynamically managed state
+				GetCertificate: certBus.GetCertificateAdapter(),
+			},
+			Handler: handler,
+		}
 
-	tasks.Start("listener "+srv.Addr, func(_ context.Context) error {
-		return httputils.RemoveGracefulServerClosedError(srv.ListenAndServeTLS("", ""))
+		return cancelableServer(ctx, srv, func() error { return srv.ListenAndServeTLS("", "") })
 	})
-
-	tasks.Start("listenershutdowner", httputils.ServerShutdownTask(srv))
 
 	tasks.Start("certbus sync", func(ctx context.Context) error { return certBus.Synchronizer(ctx) })
 

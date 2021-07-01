@@ -12,19 +12,19 @@ func TestMountResolver(t *testing.T) {
 	apps := []erconfig.Application{
 		erconfig.SimpleApplication(
 			"examplecom-app",
-			erconfig.SimpleHostnameFrontend("example.com", "/", false),
+			erconfig.SimpleHostnameFrontend("example.com"),
 			erconfig.RedirectBackend("http://example.net/1")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-root",
-			erconfig.SimpleHostnameFrontend("docs.example.com", "/", false),
+			erconfig.SimpleHostnameFrontend("docs.example.com"),
 			erconfig.RedirectBackend("http://example.net/2")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-foo",
-			erconfig.SimpleHostnameFrontend("docs.example.com", "/foo", false),
+			erconfig.SimpleHostnameFrontend("docs.example.com", erconfig.PathPrefix("/foo")),
 			erconfig.RedirectBackend("http://example.net/3")),
 		erconfig.SimpleApplication(
 			"examplecom-docs-bar",
-			erconfig.SimpleHostnameFrontend("docs.example.com", "/bar", false),
+			erconfig.SimpleHostnameFrontend("docs.example.com", erconfig.PathPrefix("/bar")),
 			erconfig.RedirectBackend("http://example.net/4")),
 	}
 

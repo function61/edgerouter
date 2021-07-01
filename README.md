@@ -1,6 +1,5 @@
 ![Build status](https://github.com/function61/edgerouter/workflows/Build/badge.svg)
-[![Download](https://img.shields.io/github/downloads/function61/edgerouter/total.svg?style=for-the-badge)](https://github.com/function61/edgerouter/releases)
-[![MicroBadger Size](https://img.shields.io/microbadger/image-size/fn61/edgerouter.svg?style=for-the-badge&label=Docker+image)](https://hub.docker.com/r/fn61/edgerouter/)
+[![Docker pulls](https://img.shields.io/docker/pulls/fn61/edgerouter.svg?style=for-the-badge)](https://hub.docker.com/r/fn61/edgerouter/)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://pkg.go.dev/github.com/function61/edgerouter)
 
 Easy clustering-native, multi-tenancy aware loadbalancer for Docker services, AWS Lambda

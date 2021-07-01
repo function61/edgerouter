@@ -74,6 +74,13 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			return nil
 		}
 
+		notSecure := r.URL.Scheme != "https"
+
+		if notSecure && !mount.allowInsecureHTTP {
+			redirectHTTPToHTTPS(w, r) // come back when you have TLS, bro
+			return mount
+		}
+
 		// todo: respect x-forwarded-for headers but only if configured as trusted
 		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.Id, ipRules); !allowed {
 			http.Error(w, errStr, http.StatusForbidden)
@@ -134,6 +141,15 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		}
 
 		return cancelableServer(ctx, srv, func() error { return srv.ListenAndServeTLS("", "") })
+	})
+
+	tasks.Start("listener :80", func(ctx context.Context) error {
+		srv := &http.Server{
+			Addr:    ":80",
+			Handler: handler,
+		}
+
+		return cancelableServer(ctx, srv, srv.ListenAndServe)
 	})
 
 	tasks.Start("certbus sync", func(ctx context.Context) error { return certBus.Synchronizer(ctx) })
@@ -264,4 +280,13 @@ func (a *atomicConfig) Apps() []erconfig.Application {
 
 func (a *atomicConfig) LastUpdated() time.Time {
 	return a.Load().(*frontendMatchers).timestamp
+}
+
+func redirectHTTPToHTTPS(w http.ResponseWriter, r *http.Request) {
+	target := "https://" + r.Host + r.URL.Path
+	if len(r.URL.RawQuery) > 0 {
+		target += "?" + r.URL.RawQuery
+	}
+
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }

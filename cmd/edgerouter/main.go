@@ -8,7 +8,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erlambdacli"
 	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
-	"github.com/function61/edgerouter/pkg/insecureredirector"
 	"github.com/function61/eventhorizon/pkg/ehcli"
 	"github.com/function61/gokit/dynversion"
 	"github.com/function61/gokit/logex"
@@ -46,9 +45,6 @@ func serveEntry() *cobra.Command {
 			mainLogger := logex.Prefix("main", rootLogger)
 			tasks := taskrunner.New(osutil.CancelOnInterruptOrTerminate(mainLogger), mainLogger)
 
-			tasks.Start("insecureredirector", func(ctx context.Context) error {
-				return insecureredirector.Serve(ctx, logex.Prefix("insecureredirector", rootLogger))
-			})
 			tasks.Start("server", func(ctx context.Context) error {
 				return erserver.Serve(ctx, rootLogger)
 			})

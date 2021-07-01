@@ -18,10 +18,11 @@ type hostnameRegexp struct {
 }
 
 type Mount struct {
-	prefix      string
-	stripPrefix bool
-	App         erconfig.Application
-	backend     http.Handler
+	prefix            string
+	stripPrefix       bool
+	App               erconfig.Application
+	backend           http.Handler
+	allowInsecureHTTP bool
 }
 
 // these are ordered from longest to shortest
@@ -59,10 +60,11 @@ func appConfigToHandlersAndMatchers(
 
 		for _, frontend := range app.Frontends {
 			pathMatcher := Mount{
-				App:         app,
-				backend:     backend,
-				prefix:      frontend.PathPrefix,
-				stripPrefix: frontend.StripPathPrefix,
+				App:               app,
+				backend:           backend,
+				prefix:            frontend.PathPrefix,
+				stripPrefix:       frontend.StripPathPrefix,
+				allowInsecureHTTP: frontend.AllowInsecureHTTP,
 			}
 
 			switch frontend.Kind {

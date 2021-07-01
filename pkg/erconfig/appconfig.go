@@ -24,11 +24,12 @@ const (
 
 // https://docs.traefik.io/v1.7/basics/#matchers
 type Frontend struct {
-	Kind            FrontendKind `json:"kind"`
-	Hostname        string       `json:"hostname,omitempty"`
-	HostnameRegexp  string       `json:"hostname_regexp,omitempty"`
-	PathPrefix      string       `json:"path_prefix"` // applies with both kinds
-	StripPathPrefix bool         `json:"strip_path_prefix,omitempty"`
+	Kind              FrontendKind `json:"kind"`
+	Hostname          string       `json:"hostname,omitempty"`
+	HostnameRegexp    string       `json:"hostname_regexp,omitempty"`
+	PathPrefix        string       `json:"path_prefix"` // applies with both kinds
+	StripPathPrefix   bool         `json:"strip_path_prefix,omitempty"`
+	AllowInsecureHTTP bool         `json:"allow_insecure_http,omitempty"`
 }
 
 func (f *Frontend) Validate() error {
@@ -240,10 +241,11 @@ func SimpleHostnameFrontend(hostname string, options ...FrontendOpt) Frontend {
 	opts := getFrontendOptions(options)
 
 	return Frontend{
-		Kind:            FrontendKindHostname,
-		Hostname:        hostname,
-		PathPrefix:      opts.pathPrefix,
-		StripPathPrefix: opts.stripPathPrefix,
+		Kind:              FrontendKindHostname,
+		Hostname:          hostname,
+		PathPrefix:        opts.pathPrefix,
+		StripPathPrefix:   opts.stripPathPrefix,
+		AllowInsecureHTTP: opts.allowInsecureHTTP,
 	}
 }
 
@@ -251,10 +253,11 @@ func RegexpHostnameFrontend(hostnameRegexp string, options ...FrontendOpt) Front
 	opts := getFrontendOptions(options)
 
 	return Frontend{
-		Kind:            FrontendKindHostnameRegexp,
-		HostnameRegexp:  hostnameRegexp,
-		PathPrefix:      opts.pathPrefix,
-		StripPathPrefix: opts.stripPathPrefix,
+		Kind:              FrontendKindHostnameRegexp,
+		HostnameRegexp:    hostnameRegexp,
+		PathPrefix:        opts.pathPrefix,
+		StripPathPrefix:   opts.stripPathPrefix,
+		AllowInsecureHTTP: opts.allowInsecureHTTP,
 	}
 }
 
@@ -416,8 +419,9 @@ func emptyFieldErr(fieldName string) error {
 
 // frontend options builder
 type frontendOptions struct {
-	pathPrefix      string
-	stripPathPrefix bool
+	pathPrefix        string
+	stripPathPrefix   bool
+	allowInsecureHTTP bool
 }
 
 func getFrontendOptions(fns []FrontendOpt) frontendOptions {
@@ -433,6 +437,8 @@ func getFrontendOptions(fns []FrontendOpt) frontendOptions {
 }
 
 type FrontendOpt func(opts *frontendOptions)
+
+func AllowInsecureHTTP(opts *frontendOptions) { opts.allowInsecureHTTP = true }
 
 func PathPrefix(pathPrefix string) FrontendOpt {
 	return func(opts *frontendOptions) {

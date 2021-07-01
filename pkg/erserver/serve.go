@@ -75,7 +75,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			return nil
 		}
 
-		notSecure := r.URL.Scheme != "https"
+		notSecure := r.TLS == nil
 
 		if notSecure && !mount.allowInsecureHTTP {
 			redirectHTTPToHTTPS(w, r) // come back when you have TLS, bro

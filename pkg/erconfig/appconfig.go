@@ -81,8 +81,8 @@ func (a *Application) Validate() error {
 		return a.Backend.ReverseProxyOpts.Validate()
 	case BackendKindAwsLambda:
 		return a.Backend.AwsLambdaOpts.Validate()
-	case BackendKindEdgerouterAdmin:
-		return nil
+	case BackendKindEdgerouterAdmin, BackendKindPromMetrics:
+		return nil // nothing to validate
 	case BackendKindAuthV0:
 		return a.Backend.AuthV0Opts.Validate()
 	case BackendKindAuthSso:
@@ -108,6 +108,7 @@ const (
 	BackendKindAuthV0          BackendKind = "auth_v0"
 	BackendKindAuthSso         BackendKind = "auth_sso"
 	BackendKindRedirect        BackendKind = "redirect"
+	BackendKindPromMetrics     BackendKind = "prom_metrics"
 )
 
 type Backend struct {
@@ -306,6 +307,12 @@ func LambdaBackend(functionName string, regionId string) Backend {
 func EdgerouterAdminBackend() Backend {
 	return Backend{
 		Kind: BackendKindEdgerouterAdmin,
+	}
+}
+
+func PromMetricsBackend() Backend {
+	return Backend{
+		Kind: BackendKindPromMetrics,
 	}
 }
 

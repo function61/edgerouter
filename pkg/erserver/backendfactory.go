@@ -14,6 +14,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var bendCache = newBackendCache()
@@ -83,6 +84,8 @@ func makeBackendInternal(
 		}
 
 		return authssobackend.New(*backendConf.AuthSsoOpts, authorizedBackend)
+	case erconfig.BackendKindPromMetrics:
+		return promhttp.Handler(), nil
 	default:
 		return nil, fmt.Errorf("unsupported backend kind: %s", backendConf.Kind)
 	}

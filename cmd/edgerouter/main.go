@@ -52,9 +52,6 @@ func serveEntry() *cobra.Command {
 			tasks.Start("server", func(ctx context.Context) error {
 				return erserver.Serve(ctx, rootLogger)
 			})
-			tasks.Start("metrics", func(ctx context.Context) error {
-				return erserver.MetricsServer(ctx, logex.Prefix("metrics", rootLogger))
-			})
 
 			osutil.ExitIfError(tasks.Wait())
 		},

@@ -114,7 +114,7 @@ func appConfigToHandlersAndMatchers(
 }
 
 func resolveMount(hostname string, path string, matchers *frontendMatchers) *Mount {
-	pathMatches := func(mount *Mount) bool {
+	pathMatches := func(mount Mount) bool {
 		if mount.prefix == "/" { // always matches
 			return true
 		}
@@ -130,7 +130,7 @@ func resolveMount(hostname string, path string, matchers *frontendMatchers) *Mou
 
 	// hostname-independent path-based mounts
 	for _, mount := range matchers.PathPrefix {
-		if pathMatches(&mount) {
+		if pathMatches(mount) {
 			return &mount
 		}
 	}
@@ -138,7 +138,7 @@ func resolveMount(hostname string, path string, matchers *frontendMatchers) *Mou
 	// try with exact hostname. this will probably be the most common case
 	if hostnameMounts, hostnameFound := matchers.Hostname[hostname]; hostnameFound {
 		for _, mount := range hostnameMounts {
-			if pathMatches(&mount) {
+			if pathMatches(mount) {
 				return &mount
 			}
 		}
@@ -151,7 +151,7 @@ func resolveMount(hostname string, path string, matchers *frontendMatchers) *Mou
 		}
 
 		for _, mount := range hostnameRegexp.Mounts {
-			if pathMatches(&mount) {
+			if pathMatches(mount) {
 				return &mount
 			}
 		}

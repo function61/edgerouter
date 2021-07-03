@@ -103,12 +103,21 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 		}
 
+		// pass the request to the concrete application where the actually interesting things happen.
+		// the path (reversed) looks like this:
+		//
+		// Application
+		// └── serveRequest (app routing/resolving, HTTP-to-HTTPS redirection, IP filtering)
+		//     └── serveRequestWithMetricsCapture
+		//         ├── listener :443
+		//         └── listener :80
 		mount.backend.ServeHTTP(w, r)
 
 		return mount
 	}
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// shared handler for both HTTPS and HTTP
+	serveRequestWithMetricsCapture := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var mount *Mount
 		// see for greatly written rationale https://github.com/felixge/httpsnoop
 		// tl;dr: response snooping is hard without losing Websocket etc. support
@@ -145,7 +154,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 				// dynamically from CertBus's dynamically managed state
 				GetCertificate: certBus.GetCertificateAdapter(),
 			},
-			Handler: handler,
+			Handler: serveRequestWithMetricsCapture,
 		}
 
 		return cancelableServer(ctx, srv, func() error { return srv.ListenAndServeTLS("", "") })
@@ -154,7 +163,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 	tasks.Start("listener :80", func(ctx context.Context) error {
 		srv := &http.Server{
 			Addr:    ":80",
-			Handler: handler,
+			Handler: serveRequestWithMetricsCapture,
 		}
 
 		return cancelableServer(ctx, srv, srv.ListenAndServe)

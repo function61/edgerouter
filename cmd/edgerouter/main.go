@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/function61/edgerouter/pkg/erlambdacli"
@@ -42,14 +41,9 @@ func serveEntry() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			rootLogger := logex.StandardLogger()
 
-			mainLogger := logex.Prefix("main", rootLogger)
-			tasks := taskrunner.New(osutil.CancelOnInterruptOrTerminate(mainLogger), mainLogger)
-
-			tasks.Start("server", func(ctx context.Context) error {
-				return erserver.Serve(ctx, rootLogger)
-			})
-
-			osutil.ExitIfError(tasks.Wait())
+			osutil.ExitIfError(erserver.Serve(
+				osutil.CancelOnInterruptOrTerminate(rootLogger),
+				rootLogger))
 		},
 	}
 }

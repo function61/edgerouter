@@ -59,6 +59,9 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		return err
 	}
 
+	// returns mount (i.e. application) that the URL matched.
+	// NOTE: does not imply the request entered the application (e.g. IP filtering or HTTPS-only rule might've blocked the request)
+	// nil mount if no URL matched means "no application found"
 	serveRequest := func(w http.ResponseWriter, r *http.Request) *Mount {
 		// load latest config in threadsafe manner
 		config := currentConfig.Load().(*frontendMatchers)
@@ -77,7 +80,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 		notSecure := r.TLS == nil
 
-		if notSecure && !mount.allowInsecureHTTP {
+		if notSecure && !mount.allowInsecureHTTP { // important that this is done before stripPrefix
 			redirectHTTPToHTTPS(w, r) // come back when you have TLS, bro
 			return mount
 		}
@@ -89,11 +92,15 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		}
 
 		if mount.stripPrefix {
-			r.URL.Path = r.URL.Path[len(mount.prefix):]
-
-			if !strings.HasPrefix(r.URL.Path, "/") {
-				r.URL.Path = "/" + r.URL.Path
+			// path=/files/foobar.txt stripPrefix=/files/
+			// => "foobar.txt"
+			newPath := r.URL.Path[len(mount.prefix):]
+			if !strings.HasPrefix(newPath, "/") { // "foobar.txt" => "/foobar.txt"
+				newPath = "/" + newPath
 			}
+
+			r.URL.Path = newPath
+
 		}
 
 		mount.backend.ServeHTTP(w, r)

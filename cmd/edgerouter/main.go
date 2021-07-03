@@ -11,7 +11,6 @@ import (
 	"github.com/function61/gokit/dynversion"
 	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/osutil"
-	"github.com/function61/gokit/taskrunner"
 	"github.com/spf13/cobra"
 )
 

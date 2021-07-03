@@ -88,7 +88,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		// todo: respect x-forwarded-for headers but only if configured as trusted
 		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.Id, ipRules); !allowed {
 			http.Error(w, errStr, http.StatusForbidden)
-			return nil
+			return mount
 		}
 
 		if mount.stripPrefix {

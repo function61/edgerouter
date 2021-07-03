@@ -35,12 +35,10 @@ type Frontend struct {
 func (f *Frontend) Validate() error {
 	switch f.Kind {
 	case FrontendKindHostname:
-		if f.Hostname == "" {
-			return emptyFieldErr("Hostname")
-		}
+		return ErrorIfUnset(f.Hostname == "", "Hostname")
 	case FrontendKindHostnameRegexp:
-		if f.HostnameRegexp == "" {
-			return emptyFieldErr("HostnameRegexp")
+		if err := ErrorIfUnset(f.HostnameRegexp == "", "HostnameRegexp"); err != nil {
+			return err
 		}
 
 		_, err := regexp.Compile(f.HostnameRegexp)
@@ -61,12 +59,12 @@ type Application struct {
 }
 
 func (a *Application) Validate() error {
-	if a.Id == "" {
-		return emptyFieldErr("Id")
+	if err := ErrorIfUnset(a.Id == "", "Id"); err != nil {
+		return err
 	}
 
-	if len(a.Frontends) == 0 {
-		return emptyFieldErr("Frontends")
+	if err := ErrorIfUnset(len(a.Frontends) == 0, "Frontends"); err != nil {
+		return err
 	}
 
 	for _, frontend := range a.Frontends {
@@ -130,15 +128,10 @@ type BackendOptsS3StaticWebsite struct {
 }
 
 func (b *BackendOptsS3StaticWebsite) Validate() error {
-	if b.BucketName == "" {
-		return emptyFieldErr("BucketName")
-	}
-
-	if b.RegionId == "" {
-		return emptyFieldErr("RegionId")
-	}
-
-	return nil
+	return FirstError(
+		ErrorIfUnset(b.BucketName == "", "BucketName"),
+		ErrorIfUnset(b.RegionId == "", "RegionId"),
+	)
 }
 
 type BackendOptsReverseProxy struct {
@@ -152,11 +145,7 @@ type BackendOptsReverseProxy struct {
 }
 
 func (b *BackendOptsReverseProxy) Validate() error {
-	if len(b.Origins) == 0 {
-		return emptyFieldErr("Origins")
-	}
-
-	return nil
+	return ErrorIfUnset(len(b.Origins) == 0, "Origins")
 }
 
 type BackendOptsAwsLambda struct {
@@ -165,15 +154,10 @@ type BackendOptsAwsLambda struct {
 }
 
 func (b *BackendOptsAwsLambda) Validate() error {
-	if b.FunctionName == "" {
-		return emptyFieldErr("FunctionName")
-	}
-
-	if b.RegionId == "" {
-		return emptyFieldErr("RegionId")
-	}
-
-	return nil
+	return FirstError(
+		ErrorIfUnset(b.FunctionName == "", "FunctionName"),
+		ErrorIfUnset(b.RegionId == "", "RegionId"),
+	)
 }
 
 type BackendOptsAuthV0 struct {
@@ -182,15 +166,10 @@ type BackendOptsAuthV0 struct {
 }
 
 func (b *BackendOptsAuthV0) Validate() error {
-	if b.BearerToken == "" {
-		return emptyFieldErr("BearerToken")
-	}
-
-	if b.AuthorizedBackend == nil {
-		return emptyFieldErr("AuthorizedBackend")
-	}
-
-	return nil
+	return FirstError(
+		ErrorIfUnset(b.BearerToken == "", "BearerToken"),
+		ErrorIfUnset(b.AuthorizedBackend == nil, "AuthorizedBackend"),
+	)
 }
 
 type BackendOptsAuthSso struct {
@@ -201,16 +180,10 @@ type BackendOptsAuthSso struct {
 }
 
 func (b *BackendOptsAuthSso) Validate() error {
-	if b.AuthorizedBackend == nil {
-		return emptyFieldErr("AuthorizedBackend")
-	}
-
-	// temporarily disabled due to prod conf
-	if b.Audience == "" {
-		return emptyFieldErr("Audience")
-	}
-
-	return nil
+	return FirstError(
+		ErrorIfUnset(b.AuthorizedBackend == nil, "AuthorizedBackend"),
+		ErrorIfUnset(b.Audience == "", "Audience"),
+	)
 }
 
 type BackendOptsRedirect struct {
@@ -218,11 +191,7 @@ type BackendOptsRedirect struct {
 }
 
 func (b *BackendOptsRedirect) Validate() error {
-	if b.To == "" {
-		return emptyFieldErr("To")
-	}
-
-	return nil
+	return ErrorIfUnset(b.To == "", "To")
 }
 
 // factories
@@ -413,8 +382,23 @@ func (t *TlsConfig) SelfOrNilIfNoMeaningfulContent() *TlsConfig {
 }
 
 // TODO: gokit/builtin
-func emptyFieldErr(fieldName string) error {
-	return fmt.Errorf("field %s cannot be empty", fieldName)
+func ErrorIfUnset(isUnset bool, fieldName string) error {
+	if isUnset {
+		return fmt.Errorf("'%s' is required but not set", fieldName)
+	} else {
+		return nil
+	}
+}
+
+// TODO: gokit/builtin
+func FirstError(errs ...error) error {
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // frontend options builder

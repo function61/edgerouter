@@ -1,7 +1,6 @@
 package erserver
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -106,7 +105,7 @@ func appConfigToHandlersAndMatchers(
 
 				sort.Slice(fem.PathPrefix, fem.PathPrefix.sortMountsFromLongestToShortest)
 			default:
-				return nil, errors.New("unsupported frontend kind")
+				return nil, fmt.Errorf("unsupported frontend kind: %s", frontend.Kind)
 			}
 		}
 	}

@@ -117,10 +117,10 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		}), w, r)
 
 		appId := func() string {
-			if mount == nil {
-				return "appNotFound"
-			} else {
+			if mount != nil {
 				return mount.App.Id
+			} else {
+				return "appNotFound"
 			}
 		}()
 

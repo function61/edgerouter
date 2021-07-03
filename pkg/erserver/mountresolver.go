@@ -28,9 +28,15 @@ type Mount struct {
 // these are ordered from longest to shortest
 type MountList []Mount
 
+// order mount list based on the path length, so longer paths are considered before root
+func (m MountList) sortMountsFromLongestToShortest(i, j int) bool {
+	return len(m[i].prefix) > len(m[j].prefix)
+}
+
 type frontendMatchers struct {
 	Hostname       map[string]MountList // hostname equality
 	hostnameRegexp []hostnameRegexp
+	PathPrefix     MountList // global "all hostnames" path prefix rules like http://ANY_HOSTNAME/.well-known/acme-challenge/TOKEN
 	Apps           []erconfig.Application
 	timestamp      time.Time
 }
@@ -39,6 +45,7 @@ func newFrontendMatchers(apps []erconfig.Application, timestamp time.Time) *fron
 	return &frontendMatchers{
 		Hostname:       map[string]MountList{},
 		hostnameRegexp: []hostnameRegexp{},
+		PathPrefix:     MountList{},
 		Apps:           apps,
 		timestamp:      timestamp,
 	}
@@ -59,7 +66,7 @@ func appConfigToHandlersAndMatchers(
 		}
 
 		for _, frontend := range app.Frontends {
-			pathMatcher := Mount{
+			mount := Mount{
 				App:               app,
 				backend:           backend,
 				prefix:            frontend.PathPrefix,
@@ -77,11 +84,9 @@ func appConfigToHandlersAndMatchers(
 
 				// TODO: detect duplicate (hostname, pathprefix) combos
 
-				mountList = append(mountList, pathMatcher)
+				mountList = append(mountList, mount)
 
-				// order mount list based on the path length, so longer paths are considered
-				// before root
-				sort.Slice(mountList, func(i, j int) bool { return len(mountList[i].prefix) > len(mountList[j].prefix) })
+				sort.Slice(mountList, mountList.sortMountsFromLongestToShortest)
 
 				fem.Hostname[frontend.Hostname] = mountList
 			case erconfig.FrontendKindHostnameRegexp:
@@ -94,8 +99,12 @@ func appConfigToHandlersAndMatchers(
 
 				fem.hostnameRegexp = append(fem.hostnameRegexp, hostnameRegexp{
 					Regexp: re,
-					Mounts: MountList{pathMatcher},
+					Mounts: MountList{mount},
 				})
+			case erconfig.FrontendKindPathPrefix:
+				fem.PathPrefix = append(fem.PathPrefix, mount)
+
+				sort.Slice(fem.PathPrefix, fem.PathPrefix.sortMountsFromLongestToShortest)
 			default:
 				return nil, errors.New("unsupported frontend kind")
 			}
@@ -105,44 +114,49 @@ func appConfigToHandlersAndMatchers(
 	return fem, nil
 }
 
-func mountListForHostname(hostname string, path string, matchers *frontendMatchers) MountList {
-	// try first with exact hostname
-	paths, hostnameFound := matchers.Hostname[hostname]
-	if hostnameFound {
-		return paths
-	}
-
-	// then, try regexp-based hostnames
-	for _, re := range matchers.hostnameRegexp {
-		if re.Regexp.MatchString(hostname) {
-			return re.Mounts
-		}
-	}
-
-	// TODO: third option, dynamic tenant lookup
-
-	return nil
-}
-
 func resolveMount(hostname string, path string, matchers *frontendMatchers) *Mount {
-	mounts := mountListForHostname(hostname, path, matchers)
-	if mounts == nil {
-		return nil
-	}
-
-	for _, mount := range mounts {
+	pathMatches := func(mount *Mount) bool {
 		if mount.prefix == "/" { // always matches
-			return &mount
+			return true
 		}
 
 		// normalize "/foo/" => "/foo"
 		prefix := strings.TrimRight(mount.prefix, "/")
 
 		// prefix="/foo" should match "/foo", "/foo/.*" but not "/foobar"
-		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+		matches := path == prefix || strings.HasPrefix(path, prefix+"/")
+
+		return matches
+	}
+
+	// hostname-independent path-based mounts
+	for _, mount := range matchers.PathPrefix {
+		if pathMatches(&mount) {
 			return &mount
 		}
 	}
 
-	return nil
+	// try with exact hostname. this will probably be the most common case
+	if hostnameMounts, hostnameFound := matchers.Hostname[hostname]; hostnameFound {
+		for _, mount := range hostnameMounts {
+			if pathMatches(&mount) {
+				return &mount
+			}
+		}
+	}
+
+	// try regexp-based hostnames
+	for _, hostnameRegexp := range matchers.hostnameRegexp {
+		if !hostnameRegexp.Regexp.MatchString(hostname) {
+			continue
+		}
+
+		for _, mount := range hostnameRegexp.Mounts {
+			if pathMatches(&mount) {
+				return &mount
+			}
+		}
+	}
+
+	return nil // will be a 404
 }

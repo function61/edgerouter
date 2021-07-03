@@ -15,11 +15,13 @@ type CurrentConfigAccessor interface {
 	LastUpdated() time.Time
 }
 
+// loosely modeled after https://doc.traefik.io/traefik/v1.7/basics/#matchers
 type FrontendKind string
 
 const (
 	FrontendKindHostname       FrontendKind = "hostname"
 	FrontendKindHostnameRegexp FrontendKind = "hostname_regexp"
+	FrontendKindPathPrefix     FrontendKind = "path_prefix"
 )
 
 // https://docs.traefik.io/v1.7/basics/#matchers
@@ -45,6 +47,8 @@ func (f *Frontend) Validate() error {
 		if err != nil {
 			return fmt.Errorf("HostnameRegexp: %v", err)
 		}
+	case FrontendKindPathPrefix:
+		return ErrorIfUnset(f.PathPrefix == "", "PathPrefix")
 	default:
 		return fmt.Errorf("unknown frontend kind: %s", f.Kind)
 	}
@@ -230,9 +234,16 @@ func RegexpHostnameFrontend(hostnameRegexp string, options ...FrontendOpt) Front
 	}
 }
 
-// catches all requests (essentially accepting all hostnames)
-func CatchAllHostnamesFrontend(options ...FrontendOpt) Frontend {
-	return RegexpHostnameFrontend("{.+}", options...)
+// catches all requests irregardless of hostname
+func PathPrefixFrontend(pathPrefix string, options ...FrontendOpt) Frontend {
+	opts := getFrontendOptions(append([]FrontendOpt{PathPrefix(pathPrefix)}, options...))
+
+	return Frontend{
+		Kind:              FrontendKindPathPrefix,
+		PathPrefix:        opts.pathPrefix,
+		StripPathPrefix:   opts.stripPathPrefix,
+		AllowInsecureHTTP: opts.allowInsecureHTTP,
+	}
 }
 
 func S3Backend(bucketName string, regionId string, deployedVersion string) Backend {

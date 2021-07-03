@@ -205,9 +205,17 @@ func syncAppsFromDiscovery(
 	}
 
 	if metricsEndpoint := os.Getenv("METRICS_ENDPOINT"); metricsEndpoint != "" {
+		// rationale for "don't care about hostname" -frontend: Prometheus usually autodiscovers its
+		// targets and usually container-based autodiscovery's primary currency is IP addresses.
+		// in container land IP addresses are mostly dynamic, so we'll expect a config like this:
+		// METRICS_ENDPOINT=/.edgerouter/metrics/QSuJqc6YY-H-5T4y and the random-looking token
+		// makes sure we use unique endpoint AND conveniently also acts as an auth token in URL
+		// (which is safer b/c while Prometheus supports explicit auth token but its config data format
+		//  makes it close to impossible to have per-target tokens so it prefers to spray the same
+		//  shared token everywhere.)
 		prom := erconfig.SimpleApplication(
 			"prom-metrics",
-			erconfig.CatchAllHostnamesFrontend(erconfig.PathPrefix(metricsEndpoint), erconfig.AllowInsecureHTTP),
+			erconfig.PathPrefixFrontend(metricsEndpoint, erconfig.AllowInsecureHTTP),
 			erconfig.PromMetricsBackend())
 
 		apps = append(apps, prom)

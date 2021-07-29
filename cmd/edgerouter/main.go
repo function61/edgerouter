@@ -4,9 +4,11 @@ package main
 import (
 	"os"
 
+	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend/turbochargererdeploy"
 	"github.com/function61/edgerouter/pkg/erlambdacli"
 	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
+	"github.com/function61/edgerouter/pkg/turbocharger/turbochargerdeploy"
 	"github.com/function61/eventhorizon/pkg/ehcli"
 	"github.com/function61/gokit/dynversion"
 	"github.com/function61/gokit/logex"
@@ -23,6 +25,8 @@ func main() {
 
 	app.AddCommand(discoveryEntry())
 	app.AddCommand(serveEntry())
+	app.AddCommand(turbochargerEntrypoint())
+
 	app.AddCommand(ers3cli.Entrypoint())
 	app.AddCommand(erlambdacli.Entrypoint())
 
@@ -45,4 +49,10 @@ func serveEntry() *cobra.Command {
 				rootLogger))
 		},
 	}
+}
+
+func turbochargerEntrypoint() *cobra.Command {
+	turbochargerCmd := turbochargerdeploy.CLIEntrypoint()
+	turbochargerCmd.AddCommand(turbochargererdeploy.CLIEntrypoint())
+	return turbochargerCmd
 }

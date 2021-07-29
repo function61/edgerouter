@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/edgerouter/pkg/turbocharger"
 	"github.com/function61/gokit/aws/s3facade"
 )
 
@@ -24,7 +25,7 @@ type lambdaBackend struct {
 	lambda       *lambda.Lambda
 }
 
-func New(opts erconfig.BackendOptsAwsLambda) (http.Handler, error) {
+func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, error) {
 	creds, err := s3facade.CredentialsFromEnv()
 	if err != nil {
 		return nil, err
@@ -35,12 +36,14 @@ func New(opts erconfig.BackendOptsAwsLambda) (http.Handler, error) {
 		return nil, err
 	}
 
-	return &lambdaBackend{
+	handler := &lambdaBackend{
 		functionName: opts.FunctionName,
 		lambda: lambda.New(
 			awsSession,
 			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionId)),
-	}, nil
+	}
+
+	return turbocharger.WrapWithMiddlewareIfConfigAvailable(handler, logger)
 }
 
 func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {

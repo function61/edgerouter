@@ -1,4 +1,5 @@
-// Serves an atomically deployed website from S3
+// Serves an atomically deployed website from S3.
+// DEPRECATED: use turbocharger instead.
 package statics3websitebackend
 
 import (

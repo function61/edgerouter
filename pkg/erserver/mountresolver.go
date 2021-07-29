@@ -2,6 +2,7 @@ package erserver
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -55,11 +56,12 @@ func appConfigToHandlersAndMatchers(
 	apps []erconfig.Application,
 	currentConfig erconfig.CurrentConfigAccessor,
 	timestamp time.Time,
+	parentLogger *log.Logger,
 ) (*frontendMatchers, error) {
 	fem := newFrontendMatchers(apps, timestamp)
 
 	for _, app := range apps {
-		backend, err := makeBackend(app.Id, app.Backend, currentConfig)
+		backend, err := makeBackend(app.Id, app.Backend, currentConfig, parentLogger)
 		if err != nil {
 			return nil, fmt.Errorf("makeBackend: %s: %w", app.Id, err)
 		}

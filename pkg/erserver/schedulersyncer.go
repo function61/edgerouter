@@ -15,6 +15,7 @@ func scheduledSync(
 	discovery erdiscovery.Reader,
 	configUpdated chan<- *frontendMatchers,
 	currentConfig erconfig.CurrentConfigAccessor,
+	parentLogger *log.Logger,
 	logger *log.Logger,
 ) error {
 	logl := logex.Levels(logger)
@@ -30,7 +31,7 @@ func scheduledSync(
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			conf, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logl)
+			conf, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, parentLogger, logl)
 			if err != nil {
 				logl.Error.Printf("syncAppsFromDiscovery: %v", err)
 				continue

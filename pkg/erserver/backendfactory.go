@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/function61/edgerouter/pkg/erbackend/authssobackend"
@@ -13,7 +14,9 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
+	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/gokit/logex"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -23,6 +26,7 @@ func makeBackend(
 	appId string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
+	parentLogger *log.Logger,
 ) (http.Handler, error) {
 	configDigest, err := json.Marshal(backendConf)
 	if err != nil {
@@ -32,7 +36,7 @@ func makeBackend(
 	// only make new instance if config JSON has changed for this app ID
 	cached := bendCache.Find(appId, configDigest)
 	if cached == nil {
-		backend, err := makeBackendInternal(appId, backendConf, currentConfig)
+		backend, err := makeBackendInternal(appId, backendConf, currentConfig, parentLogger)
 		if err != nil {
 			return nil, err
 		}
@@ -52,23 +56,31 @@ func makeBackendInternal(
 	appId string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
+	parentLogger *log.Logger,
 ) (http.Handler, error) {
+	appSpecificLogger := func() *log.Logger { // helper
+		return logex.Prefix(appId, parentLogger)
+	}
+
 	switch backendConf.Kind {
 	case erconfig.BackendKindS3StaticWebsite:
 		return statics3websitebackend.New(appId, *backendConf.S3StaticWebsiteOpts)
 	case erconfig.BackendKindReverseProxy:
-		return reverseproxybackend.New(appId, *backendConf.ReverseProxyOpts)
+		return reverseproxybackend.New(appId, *backendConf.ReverseProxyOpts, appSpecificLogger())
 	case erconfig.BackendKindAwsLambda:
-		return lambdabackend.New(*backendConf.AwsLambdaOpts)
+		return lambdabackend.New(*backendConf.AwsLambdaOpts, appSpecificLogger())
 	case erconfig.BackendKindRedirect:
 		return redirectbackend.New(*backendConf.RedirectOpts), nil
+	case erconfig.BackendKindTurbocharger:
+		return turbochargerbackend.New(backendConf.TurbochargerOpts.Manifest, appSpecificLogger())
 	case erconfig.BackendKindEdgerouterAdmin:
 		return edgerouteradminbackend.New(currentConfig)
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
 			appId,
 			*backendConf.AuthV0Opts.AuthorizedBackend,
-			currentConfig)
+			currentConfig,
+			parentLogger)
 		if err != nil {
 			return nil, fmt.Errorf("authorizedBackend: %w", err)
 		}
@@ -78,7 +90,8 @@ func makeBackendInternal(
 		authorizedBackend, err := makeBackendInternal(
 			appId,
 			*backendConf.AuthSsoOpts.AuthorizedBackend,
-			currentConfig)
+			currentConfig,
+			parentLogger)
 		if err != nil {
 			return nil, fmt.Errorf("authorizedBackend: %w", err)
 		}

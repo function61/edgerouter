@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/function61/edgerouter/pkg/turbocharger"
 )
 
 // can be used to fetch the current state of configuration - the apps Edgerouter knows *right now*,
@@ -92,6 +94,8 @@ func (a *Application) Validate() error {
 		return a.Backend.AuthSsoOpts.Validate()
 	case BackendKindRedirect:
 		return a.Backend.RedirectOpts.Validate()
+	case BackendKindTurbocharger:
+		return a.Backend.TurbochargerOpts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
 	}
@@ -112,6 +116,7 @@ const (
 	BackendKindAuthSso         BackendKind = "auth_sso"
 	BackendKindRedirect        BackendKind = "redirect"
 	BackendKindPromMetrics     BackendKind = "prom_metrics"
+	BackendKindTurbocharger    BackendKind = "turbocharger"
 )
 
 type Backend struct {
@@ -122,6 +127,7 @@ type Backend struct {
 	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
 	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
 	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
+	TurbochargerOpts    *BackendOptsTurbocharger    `json:"turbocharger_opts,omitempty"`
 }
 
 type BackendOptsS3StaticWebsite struct {
@@ -196,6 +202,14 @@ type BackendOptsRedirect struct {
 
 func (b *BackendOptsRedirect) Validate() error {
 	return ErrorIfUnset(b.To == "", "To")
+}
+
+type BackendOptsTurbocharger struct {
+	Manifest turbocharger.ObjectID `json:"manifest"`
+}
+
+func (b *BackendOptsTurbocharger) Validate() error {
+	return nil
 }
 
 // factories
@@ -273,6 +287,15 @@ func RedirectBackend(to string) Backend {
 		Kind: BackendKindRedirect,
 		RedirectOpts: &BackendOptsRedirect{
 			To: to,
+		},
+	}
+}
+
+func TurbochargerBackend(manifestID turbocharger.ObjectID) Backend {
+	return Backend{
+		Kind: BackendKindTurbocharger,
+		TurbochargerOpts: &BackendOptsTurbocharger{
+			Manifest: manifestID,
 		},
 	}
 }
@@ -364,6 +387,8 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken=...] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	case BackendKindRedirect:
 		return string(b.Kind) + ":" + b.RedirectOpts.To
+	case BackendKindTurbocharger:
+		return string(b.Kind) + ":" + b.TurbochargerOpts.Manifest.String()
 	case BackendKindAuthSso:
 		return string(b.Kind) + ":" + fmt.Sprintf("[audience=%s] -> %s", b.AuthSsoOpts.Audience, b.AuthSsoOpts.AuthorizedBackend.Describe())
 	default:

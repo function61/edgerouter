@@ -20,6 +20,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/dockerdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
+	"github.com/function61/edgerouter/pkg/turbocharger"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/envvar"
 	"github.com/function61/gokit/logex"
@@ -44,7 +45,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 	currentConfig := newAtomicConfig()
 
 	// initial sync so we won't start dealing out 404s when HTTP server starts
-	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logl)
+	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logger, logl)
 	if err != nil {
 		// not treating this as a fatal error though
 		logl.Error.Printf("initial sync failed: %v", err)
@@ -143,6 +144,8 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
 	})
 
+	logl.Info.Printf("turbocharger middleware activated=%v", turbocharger.MiddlewareConfigAvailable())
+
 	configUpdated := make(chan *frontendMatchers, 1)
 
 	tasks := taskrunner.New(ctx, logger)
@@ -177,6 +180,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			discovery,
 			configUpdated,
 			currentConfig,
+			logger,
 			logex.Prefix("configsyncscheduler", logger))
 	})
 
@@ -194,6 +198,7 @@ func syncAppsFromDiscovery(
 	ctx context.Context,
 	discovery erdiscovery.Reader,
 	currentConfig erconfig.CurrentConfigAccessor,
+	parentLogger *log.Logger,
 	logl *logex.Leveled,
 ) (*frontendMatchers, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -223,7 +228,7 @@ func syncAppsFromDiscovery(
 
 	logl.Info.Printf("discovered %d app(s)", len(apps))
 
-	matchers, err := appConfigToHandlersAndMatchers(apps, currentConfig, time.Now())
+	matchers, err := appConfigToHandlersAndMatchers(apps, currentConfig, time.Now(), parentLogger)
 	if err != nil {
 		return nil, fmt.Errorf("appConfigToHandlersAndMatchers: %w", err)
 	}

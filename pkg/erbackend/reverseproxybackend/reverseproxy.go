@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
@@ -18,6 +19,7 @@ import (
 	"github.com/cozy/httpcache"
 	"github.com/cozy/httpcache/diskcache"
 	"github.com/function61/edgerouter/pkg/erconfig"
+	"github.com/function61/edgerouter/pkg/turbocharger"
 )
 
 // using fork of gregjones/httpcache because the project is "done" and it disastrously caches 304
@@ -31,8 +33,13 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func New(appId string, opts erconfig.BackendOptsReverseProxy) (http.Handler, error) {
-	return NewWithModifyResponse(appId, opts, nil)
+func New(appId string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger) (http.Handler, error) {
+	handler, err := NewWithModifyResponse(appId, opts, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return turbocharger.WrapWithMiddlewareIfConfigAvailable(handler, logger)
 }
 
 func NewWithModifyResponse(

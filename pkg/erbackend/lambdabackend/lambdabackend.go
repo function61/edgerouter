@@ -47,8 +47,6 @@ func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, 
 }
 
 func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("requesting path %s", r.URL.String())
-
 	defer r.Body.Close()
 
 	requestBodyBase64 := &bytes.Buffer{}

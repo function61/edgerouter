@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"sync"
 )
 
 type opCounters struct {
@@ -24,6 +25,7 @@ func (o opCounters) subtract(other opCounters) opCounters {
 type inMemoryStore struct {
 	files    map[ObjectID][]byte
 	counters opCounters
+	mu       sync.Mutex // not really necessary b/c this is for testing, but added anyway to please Go's race detector
 }
 
 func newInMemoryStore() *inMemoryStore {
@@ -33,6 +35,9 @@ func newInMemoryStore() *inMemoryStore {
 var _ CAS = (*inMemoryStore)(nil)
 
 func (d *inMemoryStore) GetObject(ctx context.Context, id ObjectID) (io.ReadCloser, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	d.counters.gets++
 
 	buf, found := d.files[id]
@@ -44,6 +49,9 @@ func (d *inMemoryStore) GetObject(ctx context.Context, id ObjectID) (io.ReadClos
 }
 
 func (d *inMemoryStore) InsertObject(ctx context.Context, id ObjectID, content io.Reader, contentType string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	d.counters.puts++
 
 	buf, err := io.ReadAll(content)

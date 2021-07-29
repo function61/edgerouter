@@ -47,6 +47,6 @@ func StorageFromConfig() (*CASPair, error) {
 			Manifests: newS3Storage("turbocharger/manifests/", bucket),
 		}, nil
 	default:
-		return nil, fmt.Errorf("unsupportes scheme: %s", urlParts.Scheme)
+		return nil, fmt.Errorf("unsupported scheme: %s", urlParts.Scheme)
 	}
 }

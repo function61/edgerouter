@@ -370,6 +370,8 @@ func (f *Frontend) Describe() string {
 		return string(f.Kind) + ":" + f.Hostname + f.PathPrefix
 	case FrontendKindHostnameRegexp:
 		return string(f.Kind) + ":" + f.HostnameRegexp + f.PathPrefix
+	case FrontendKindPathPrefix:
+		return string(f.Kind) + ":" + f.PathPrefix
 	default:
 		return string(f.Kind)
 	}

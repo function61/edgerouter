@@ -11,7 +11,6 @@ var (
 		handler        *ManifestHandler
 		handlerInitErr error
 		mu             sync.Mutex
-		once           sync.Once
 	}{}
 )
 
@@ -20,12 +19,12 @@ var (
 func GetManifestHandlerSingleton() (*ManifestHandler, error) {
 	m := manifestHandlerSingleton // shorthand
 
-	m.mu.Lock() // *once* is once, but does not protect from races to this getter
+	m.mu.Lock() // we could use sync.Once, but it wouldn't protect from races to this getter
 	defer m.mu.Unlock()
 
-	m.once.Do(func() {
+	if m.handler == nil && m.handlerInitErr == nil { // both nil only if init not called
 		m.handler, m.handlerInitErr = NewManifestHandlerAndStorages()
-	})
+	}
 
 	return m.handler, m.handlerInitErr
 }

@@ -24,8 +24,8 @@ func CLIEntrypoint() *cobra.Command {
 	}
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   "tar-deploy <project>",
-		Short: "Deploy a tar package into the CAS",
+		Use:   "tar-deploy-to-store <project>",
+		Short: "Deploy a tar package into the storage, so it can be referenced from somewhere",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			rootLogger := logex.StandardLogger()

@@ -15,7 +15,7 @@ import (
 
 func CLIEntrypoint() *cobra.Command {
 	return &cobra.Command{
-		Use:   "deploy [applicationId] [manifestID]",
+		Use:   "deploy-site-from-store [applicationId] [manifestID]",
 		Short: "Deploys a static website from Turbocharger",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -89,5 +89,7 @@ func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger 
 		len(manifest.Manifest.Files),
 		time.Since(started))
 
+	fmt.Println(manifest.ID.String()) // to stdout so scripts can automate on this
+
 	return nil
 }

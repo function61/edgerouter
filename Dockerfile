@@ -8,4 +8,6 @@ ENTRYPOINT ["edgerouter"]
 
 CMD ["serve"]
 
-ADD rel/edgerouter_linux-amd64 /usr/local/bin/edgerouter
+COPY bin/bin/deploy-turbocharger-site.sh /usr/bin/
+
+COPY rel/edgerouter_linux-amd64 /usr/bin/edgerouter

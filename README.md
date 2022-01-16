@@ -20,7 +20,10 @@ Features
     same config.
 - Dynamically discovers Docker services (Swarm and standalone containers supported).
   * Kubernetes is not currently supported.
-- [CertBus](https://github.com/function61/certbus) integration for always up-to-date TLS
+- Serves as a research platform for new technologies:
+	* [CertBus](https://github.com/function61/certbus) integration for always up-to-date TLS.
+	* [Turbocharger](pkg/turbocharger/README.md) implementation for lightning-fast static file delivery and cacheability.
+	* Supports MicroWebApp-style apps (TODO: publish spec)
   certificates
 - Emulates AWS API Gateway for calling Lambda functions
 - S3 static website support

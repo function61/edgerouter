@@ -37,7 +37,8 @@
 	"docker_images": [
 		{
 			"image": "fn61/edgerouter",
-			"dockerfile_path": "Dockerfile"
+			"dockerfile_path": "Dockerfile",
+			"platforms": ["linux/amd64", "linux/arm/v7"]
 		}
 	]
 }

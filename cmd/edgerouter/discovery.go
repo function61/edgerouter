@@ -148,7 +148,7 @@ func discoveryCat(appId string) error {
 
 	app := erconfig.FindApplication(appId, apps)
 	if app == nil {
-		return errors.New("app to delete not found")
+		return errors.New("app not found")
 	}
 
 	enc := json.NewEncoder(os.Stdout)

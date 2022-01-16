@@ -57,7 +57,8 @@ func NewWithModifyResponse(
 		if opts.TlsConfig != nil { // got custom TLS config?
 			return &http.Transport{
 				TLSClientConfig: &tls.Config{
-					ServerName:         opts.TlsConfig.ServerName,
+					ServerName: opts.TlsConfig.ServerName,
+					//nolint:gosec // InsecureSkipVerify intentionally configurable
 					InsecureSkipVerify: opts.TlsConfig.InsecureSkipVerify,
 				},
 			}
@@ -72,6 +73,7 @@ func NewWithModifyResponse(
 	return &httputil.ReverseProxy{
 		Transport: transport,
 		Director: func(req *http.Request) {
+			//nolint:gosec // Cryptographical randomness not required here
 			randomOriginIdx := rand.Intn(len(originUrls))
 
 			originUrl := originUrls[randomOriginIdx]

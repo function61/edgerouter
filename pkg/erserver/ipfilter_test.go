@@ -40,6 +40,7 @@ allow_specified {
 `))
 	assert.Ok(t, err)
 
+	//nolint:gocritic // intentionally useless lambda, but useful as shorthand
 	ip := func(ipStr string) netaddr.IP { // shorthand
 		return netaddr.MustParseIP(ipStr)
 	}

@@ -4,7 +4,7 @@ package s3discovery
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // Not used for cryptographic purposes
 	"encoding/json"
 	"fmt"
 	"os"
@@ -62,6 +62,7 @@ func (d *s3discovery) ReadApplications(ctx context.Context) ([]erconfig.Applicat
 		return nil, fmt.Errorf("s3discovery: ListObjects: %v", err)
 	}
 
+	//nolint:gosec // Not used for cryptographic purposes
 	contentsEtagsHashBuilder := sha1.New()
 
 	for _, object := range listResponse.Contents {

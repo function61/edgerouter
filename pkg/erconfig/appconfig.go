@@ -393,7 +393,9 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + b.TurbochargerOpts.Manifest.String()
 	case BackendKindAuthSso:
 		return string(b.Kind) + ":" + fmt.Sprintf("[audience=%s] -> %s", b.AuthSsoOpts.Audience, b.AuthSsoOpts.AuthorizedBackend.Describe())
-	default:
+	case BackendKindEdgerouterAdmin, BackendKindPromMetrics: // to please exhaustive lint
+		return string(b.Kind)
+	default: // should never actually arrive here
 		return string(b.Kind)
 	}
 }

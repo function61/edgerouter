@@ -152,10 +152,15 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 	tasks.Start("listener :443", func(ctx context.Context) error {
 		srv := &http.Server{
 			Addr: ":443",
+			// lint complains about too low MinVersion (the default, in Go sets it as TLS 1.0).
+			// purposefully leaving MinVersion as default because I feel Go stdlib's default MinVersion
+			// in the long run aligns with loadbalancer use case of conservatively having to support a wide base of users.
+			// https://developers.cloudflare.com/ssl/edge-certificates/additional-options/minimum-tls#decide-what-version-to-use
+			//
+			//nolint:gosec // rationale above
 			TLSConfig: &tls.Config{
-				// this integrates CertBus into your server - certificates are fetched
-				// dynamically from CertBus's dynamically managed state
-				GetCertificate: certBus.GetCertificateAdapter(),
+				// MinVersion: ... // purposefully unset to follow Go stdlib MinVersion
+				GetCertificate: getCertificateFn,
 			},
 			Handler: serveRequestWithMetricsCapture,
 		}

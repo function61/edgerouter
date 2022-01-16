@@ -86,7 +86,9 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 		return nil, err
 	}
 
-	swarmServicesAndBareContainers := append(swarmServices, bareContainers...)
+	swarmServicesAndBareContainers := []Service{}
+	swarmServicesAndBareContainers = append(swarmServicesAndBareContainers, swarmServices...)
+	swarmServicesAndBareContainers = append(swarmServicesAndBareContainers, bareContainers...)
 
 	apps := []erconfig.Application{}
 

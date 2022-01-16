@@ -28,9 +28,9 @@ func hostnameRegexpSyntaxToRegexp(in string) (*regexp.Regexp, error) {
 }
 
 func escapeRegexChars(in string) string {
-	return strings.Replace(in, ".", `\.`, -1)
+	return strings.ReplaceAll(in, ".", `\.`)
 }
 
 func unescapeRegexChars(in string) string {
-	return strings.Replace(in, `\.`, `.`, -1)
+	return strings.ReplaceAll(in, `\.`, `.`)
 }

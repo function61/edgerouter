@@ -160,7 +160,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			//nolint:gosec // rationale above
 			TLSConfig: &tls.Config{
 				// MinVersion: ... // purposefully unset to follow Go stdlib MinVersion
-				GetCertificate: getCertificateFn,
+				GetCertificate: certBus.GetCertificateAdapter(),
 			},
 			Handler: serveRequestWithMetricsCapture,
 		}

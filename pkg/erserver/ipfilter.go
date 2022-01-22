@@ -9,15 +9,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/function61/gokit/fileexists"
 	"github.com/function61/gokit/hcl2json"
 	"github.com/function61/gokit/jsonfile"
 	"github.com/function61/gokit/sliceutil"
 	"inet.af/netaddr"
-)
-
-const (
-	ipRulesFile = "/etc/edgerouter/ip-rules.hcl" // temporary solution - these will have to live in EventHorizon
 )
 
 type ipRule struct {
@@ -94,19 +89,14 @@ type ipRulesConfig struct {
 	} `json:"allow_specified"`
 }
 
-func loadIpRules() ([]ipRule, error) {
-	exists, err := fileexists.Exists(ipRulesFile)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exists { // not an error => we just don't have any rules.. pun intended :)
-		return nil, nil
-	}
-
+func loadIpRules(ipRulesFile string) ([]ipRule, error) {
 	f, err := os.Open(ipRulesFile)
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) { // not an error => we just don't have any rules.. pun intended :)
+			return nil, nil
+		} else { // actual error
+			return nil, err
+		}
 	}
 	defer f.Close()
 

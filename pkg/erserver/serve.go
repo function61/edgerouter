@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -29,13 +30,12 @@ import (
 )
 
 const (
-	ConfigDir            = "/etc/edgerouter"
-	LocalDevCertfilePath = "/etc/edgerouter/dev-cert.pem" // used when CertBus not configured
+	DefaultConfigDir ConfigDir = "/etc/edgerouter"
 )
 
 type GetCertificateFn func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-func Serve(ctx context.Context, logger *log.Logger) error {
+func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 	logl := logex.Levels(logger)
 
 	metrics := initMetrics()
@@ -70,10 +70,10 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 			return certBus.GetCertificateAdapter(), nil
 		} else {
-			logl.Info.Printf("CertBus not configured - assuming local dev-server & using %s", LocalDevCertfilePath)
+			logl.Info.Printf("CertBus not configured - assuming local dev-server & using %s", configDir.DevelopmentCertificate())
 
 			// this is expected to be configured with mkcert or similar
-			keyPair, err := tls.LoadX509KeyPair(LocalDevCertfilePath, LocalDevCertfilePath)
+			keyPair, err := tls.LoadX509KeyPair(configDir.DevelopmentCertificate(), configDir.DevelopmentCertificate())
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					return nil, fmt.Errorf(
@@ -111,7 +111,9 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 	// TODO: if these rules have syntax error, it'd be good if it came up before other async tasks
 	//       are started.
-	ipRules, err := loadIpRules()
+	//
+	// file is a temporary solution - these will have to live in EventHorizon
+	ipRules, err := loadIpRules("/etc/edgerouter/ip-rules.hcl")
 	if err != nil {
 		return err
 	}
@@ -361,6 +363,22 @@ func alwaysReturnSameCertificate(keyPair *tls.Certificate) GetCertificateFn {
 	return func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return keyPair, nil
 	}
+}
+
+type ConfigDir string
+
+func (c ConfigDir) DevelopmentCertificate() string {
+	return c.File("dev-cert.pem")
+}
+
+func (c ConfigDir) String() string {
+	return string(c)
+}
+
+// makes path to any file in the configuration directory
+// use sparingly
+func (c ConfigDir) File(filename string) string {
+	return filepath.Join(string(c), filename)
 }
 
 type atomicConfig struct {

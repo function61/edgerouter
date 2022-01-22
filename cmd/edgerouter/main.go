@@ -46,6 +46,7 @@ func serveEntry() *cobra.Command {
 
 			osutil.ExitIfError(erserver.Serve(
 				osutil.CancelOnInterruptOrTerminate(rootLogger),
+				erserver.DefaultConfigDir,
 				rootLogger))
 		},
 	}

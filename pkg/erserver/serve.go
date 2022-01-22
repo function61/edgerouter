@@ -4,6 +4,7 @@ package erserver
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,12 +28,67 @@ import (
 	"github.com/function61/gokit/taskrunner"
 )
 
+const (
+	ConfigDir            = "/etc/edgerouter"
+	LocalDevCertfilePath = "/etc/edgerouter/dev-cert.pem" // used when CertBus not configured
+)
+
+type GetCertificateFn func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+
 func Serve(ctx context.Context, logger *log.Logger) error {
 	logl := logex.Levels(logger)
 
 	metrics := initMetrics()
 
-	certBus, err := makeCertBus(ctx, logex.Prefix("certbus", logger))
+	waitAlreadyDoneFIXMENOTNEEDEDLONG := false
+
+	tasksCtx, tasksCancel := context.WithCancel(ctx)
+	tasks := taskrunner.New(tasksCtx, logger)
+	defer func() {
+		// this defer is only needed for early exits to stop certbus sync task. if we exit from happy
+		// path at bottom of this fn, this is not needed (but does not hurt to run twice)
+
+		if waitAlreadyDoneFIXMENOTNEEDEDLONG {
+			return
+		}
+
+		// this currently has a bug which is fixed when we can update to new gokit
+		if err := tasks.Wait(); err != nil {
+			logl.Error.Printf("taskrunner early-exit Wait(): %v", err)
+		}
+	}()
+	defer tasksCancel()
+
+	getCertificateFn, err := func() (GetCertificateFn, error) {
+		if os.Getenv("CERTBUS_CLIENT_PRIVKEY") != "" {
+			certBus, err := makeCertBus(ctx, logex.Prefix("certbus", logger))
+			if err != nil {
+				return nil, err
+			}
+
+			tasks.Start("certbus sync", func(ctx context.Context) error { return certBus.Synchronizer(ctx) })
+
+			return certBus.GetCertificateAdapter(), nil
+		} else {
+			logl.Info.Printf("CertBus not configured - assuming local dev-server & using %s", LocalDevCertfilePath)
+
+			// this is expected to be configured with mkcert or similar
+			keyPair, err := tls.LoadX509KeyPair(LocalDevCertfilePath, LocalDevCertfilePath)
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					return nil, fmt.Errorf(
+						"certificate not found - run '$ %s setup-devcerts' first: %w",
+						os.Args[0],
+						err)
+				} else {
+					return nil, err
+				}
+			}
+
+			// we're assuming the user only needs one hostname or that it's a wildcard certificate
+			return alwaysReturnSameCertificate(&keyPair), nil
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -148,7 +204,6 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 
 	configUpdated := make(chan *frontendMatchers, 1)
 
-	tasks := taskrunner.New(ctx, logger)
 	tasks.Start("listener :443", func(ctx context.Context) error {
 		srv := &http.Server{
 			Addr: ":443",
@@ -160,7 +215,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 			//nolint:gosec // rationale above
 			TLSConfig: &tls.Config{
 				// MinVersion: ... // purposefully unset to follow Go stdlib MinVersion
-				GetCertificate: certBus.GetCertificateAdapter(),
+				GetCertificate: getCertificateFn,
 			},
 			Handler: serveRequestWithMetricsCapture,
 		}
@@ -177,8 +232,6 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 		return cancelableServer(ctx, srv, srv.ListenAndServe)
 	})
 
-	tasks.Start("certbus sync", func(ctx context.Context) error { return certBus.Synchronizer(ctx) })
-
 	tasks.Start("configsyncscheduler", func(ctx context.Context) error {
 		return scheduledSync(
 			ctx,
@@ -192,6 +245,7 @@ func Serve(ctx context.Context, logger *log.Logger) error {
 	for {
 		select {
 		case err := <-tasks.Done():
+			waitAlreadyDoneFIXMENOTNEEDEDLONG = true
 			return err
 		case config := <-configUpdated:
 			currentConfig.Store(config)
@@ -301,6 +355,12 @@ func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) 
 	}
 
 	return certBus, nil
+}
+
+func alwaysReturnSameCertificate(keyPair *tls.Certificate) GetCertificateFn {
+	return func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+		return keyPair, nil
+	}
 }
 
 type atomicConfig struct {

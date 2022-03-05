@@ -21,6 +21,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/dockerdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
+	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
 	"github.com/function61/edgerouter/pkg/todoupgradegokit"
 	"github.com/function61/edgerouter/pkg/turbocharger"
@@ -333,6 +334,15 @@ func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {
 		}
 
 		readers = append(readers, ehDiscovery)
+	}
+
+	maybeFromFile, err := newFileDiscoveryIfFileExists(filediscovery.DefaultFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	if maybeFromFile != nil {
+		readers = append(readers, maybeFromFile)
 	}
 
 	return erdiscovery.MultiDiscovery(readers), nil

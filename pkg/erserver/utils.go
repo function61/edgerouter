@@ -5,6 +5,10 @@ import (
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/function61/edgerouter/pkg/erdiscovery"
+	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
+	"github.com/function61/gokit/fileexists"
 )
 
 // net.SplitHostPort() does not support case where port is not defined...
@@ -46,5 +50,20 @@ func cancelableServer(ctx context.Context, srv *http.Server, listener func() err
 		// some other error
 		// (or nil, but http server should always exit with non-nil error)
 		return err
+	}
+}
+
+// like its `New()` but don't error if file doesn't exist.
+// (still errors if existence check fails)
+func newFileDiscoveryIfFileExists(path string) (erdiscovery.Reader, error) {
+	exists, err := fileexists.Exists(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return filediscovery.New(path), nil
+	} else {
+		return nil, nil
 	}
 }

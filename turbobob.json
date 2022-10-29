@@ -14,7 +14,14 @@
 				"build": ["build-go-project.sh", "--directory=cmd/edgerouter/", "--binary-basename=edgerouter"],
 				"dev": ["bash"]
 			},
-			"dev_ports": ["80:80", "443:443"]
+			"dev_ports": ["80:80", "443:443"],
+			"dev_shell_commands": [
+				{ "command": "rel/edgerouter_linux-amd64 serve", "important": true },
+				{ "command": "source env-discovery-dev.env && source env-docker-integration.env && bob tips", "important": true }
+			],
+			"dev_pro_tips": [
+				"docker network connect fn61 tbdev-edgerouter-default"
+			]
 		},
 		{
 			"name": "publisher",

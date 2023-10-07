@@ -115,10 +115,10 @@ type Manifest struct {
 	Files    []Path           `json:"files"` // "foobar/index.html" => 9f86d081884c7d65...
 }
 
-func decodeManifest(reader io.Reader) (*Manifest, error) {
+func DecodeManifest(reader io.Reader) (*Manifest, error) {
 	man := &Manifest{}
 	if err := json.NewDecoder(reader).Decode(man); err != nil {
-		return nil, fmt.Errorf("decodeManifest: %w", err)
+		return nil, fmt.Errorf("DecodeManifest: %w", err)
 	}
 
 	return man, nil

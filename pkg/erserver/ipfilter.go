@@ -39,7 +39,7 @@ func ipAllowed(ipAndPortStr string, appToAccess string, rules []ipRule) (bool, s
 	}
 
 	// the port is not used for ACL (it's remote port anyway which is meaningless)
-	return ipAllowedInternal(ipAndPort.IP, appToAccess, rules)
+	return ipAllowedInternal(ipAndPort.IP(), appToAccess, rules)
 }
 
 // do not use directly

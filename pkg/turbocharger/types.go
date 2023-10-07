@@ -77,6 +77,11 @@ func (o *ObjectID) UnmarshalJSON(b []byte) error {
 }
 
 func ObjectIDFromString(serialized string) (*ObjectID, error) {
+	// unmarshaling to fixed-length byte slice would succeed but Go just truncates the input data 🤦‍♀️
+	if len(serialized) != len("bkL0DwZiwOdWij766bl0qyZDrsj4zy-EqmL25fNaBAM") {
+		return nil, fmt.Errorf("invalid length for ObjectID; got %d", len(serialized))
+	}
+
 	id := ObjectID{}
 	if err := json.Unmarshal([]byte(fmt.Sprintf(`"%s"`, serialized)), &id); err != nil {
 		return nil, err

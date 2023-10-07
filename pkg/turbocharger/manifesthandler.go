@@ -346,7 +346,7 @@ func (h *ManifestHandler) resolveManifest(manifestID ObjectID) (*optimizedManife
 		case err == nil: // fast-path
 			defer manifest.Close()
 
-			return decodeManifest(manifest)
+			return DecodeManifest(manifest)
 		case !errors.Is(err, fs.ErrNotExist): // actually unexpected error
 			h.logl.Error.Printf("resolveManifest cacheUncompressed: %v", err)
 		}
@@ -369,7 +369,7 @@ func (h *ManifestHandler) resolveManifest(manifestID ObjectID) (*optimizedManife
 			h.logl.Error.Printf("resolveManifest cacheUncompressed: %v", err)
 		}
 
-		return decodeManifest(bytes.NewReader(manifestBuf))
+		return DecodeManifest(bytes.NewReader(manifestBuf))
 	}()
 	if err != nil {
 		return nil, err

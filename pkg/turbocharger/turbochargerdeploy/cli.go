@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -35,6 +36,27 @@ func CLIEntrypoint() *cobra.Command {
 				args[0],
 				os.Stdin,
 				rootLogger))
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "download-from-store <manifest>",
+		Short: "(For debug or rescue) download site from remote to local",
+		Args:  cobra.ExactArgs(1),
+		Run: func(_ *cobra.Command, args []string) {
+			rootLogger := logex.StandardLogger()
+
+			osutil.ExitIfError(func() error {
+				manifestID, err := turbocharger.ObjectIDFromString(args[0])
+				if err != nil {
+					return err
+				}
+
+				return downloadFromStore(
+					osutil.CancelOnInterruptOrTerminate(rootLogger),
+					*manifestID,
+					rootLogger)
+			}())
 		},
 	})
 
@@ -90,6 +112,56 @@ func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger 
 		time.Since(started))
 
 	fmt.Println(manifest.ID.String()) // to stdout so scripts can automate on this
+
+	return nil
+}
+
+func downloadFromStore(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logger) error {
+	storages, err := turbocharger.StorageFromConfig()
+	if err != nil {
+		return err
+	}
+
+	manifestContent, err := storages.Manifests.GetObject(ctx, manifestID)
+	if err != nil {
+		return err
+	}
+
+	manifest, err := turbocharger.DecodeManifest(manifestContent)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range manifest.Files {
+		logger.Printf("downloading %s", file.Path)
+
+		if err := func() error {
+			content, err := storages.Files.GetObject(ctx, file.ContentID)
+			if err != nil {
+				return err
+			}
+
+			cleanedPath := strings.TrimLeft(file.Path, "/")
+
+			if err := os.MkdirAll(filepath.Dir(cleanedPath), 0755); err != nil {
+				return err
+			}
+
+			localFile, err := os.Create(cleanedPath)
+			if err != nil {
+				return err
+			}
+			defer localFile.Close() // double close intentional
+
+			if _, err := io.Copy(localFile, content); err != nil {
+				return err
+			}
+
+			return localFile.Close()
+		}(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

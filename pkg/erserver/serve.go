@@ -22,6 +22,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/dockerdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit"
 	"github.com/function61/edgerouter/pkg/turbocharger"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/envvar"
@@ -219,7 +220,8 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 				// MinVersion: ... // purposefully unset to follow Go stdlib MinVersion
 				GetCertificate: getCertificateFn,
 			},
-			Handler: serveRequestWithMetricsCapture,
+			Handler:           serveRequestWithMetricsCapture,
+			ReadHeaderTimeout: todoupgradegokit.DefaultReadHeaderTimeout,
 		}
 
 		return cancelableServer(ctx, srv, func() error { return srv.ListenAndServeTLS("", "") })
@@ -227,8 +229,9 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 
 	tasks.Start("listener :80", func(ctx context.Context) error {
 		srv := &http.Server{
-			Addr:    ":80",
-			Handler: serveRequestWithMetricsCapture,
+			Addr:              ":80",
+			Handler:           serveRequestWithMetricsCapture,
+			ReadHeaderTimeout: todoupgradegokit.DefaultReadHeaderTimeout,
 		}
 
 		return cancelableServer(ctx, srv, srv.ListenAndServe)

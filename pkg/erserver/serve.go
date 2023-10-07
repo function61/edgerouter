@@ -96,7 +96,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 
 	discovery, err := configureDiscovery(logger)
 	if err != nil {
-		return err
+		return fmt.Errorf("configureDiscovery: %w", err)
 	}
 
 	currentConfig := newAtomicConfig()

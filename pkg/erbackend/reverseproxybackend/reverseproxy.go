@@ -20,6 +20,7 @@ import (
 	"github.com/cozy/httpcache/diskcache"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/turbocharger"
+	"github.com/peterbourgon/diskv"
 )
 
 // using fork of gregjones/httpcache because the project is "done" and it disastrously caches 304
@@ -134,7 +135,12 @@ func maybeWrapWithCache(
 		return nil, fmt.Errorf("cachingreverseproxy: %w", err)
 	}
 
-	cache := httpcache.NewTransport(diskcache.New(cacheLocation))
+	diskCache := diskcache.NewWithDiskv(diskv.New(diskv.Options{
+		BasePath:     cacheLocation,
+		CacheSizeMax: 0, // disable RAM caching (only use the disk cache)
+	}))
+
+	cache := httpcache.NewTransport(diskCache)
 	cache.Transport = inner
 	cache.MarkCachedResponses = true // (for debugging) X-From-Cache header
 

@@ -9,7 +9,8 @@ import (
 )
 
 // find annotations from here:
-//     https://docs.traefik.io/v1.7/configuration/backends/docker/
+//
+//	https://docs.traefik.io/v1.7/configuration/backends/docker/
 func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 	// we used to have explicit check for label traefik.enable=true, but that was strictly
 	// for Traefik itself so it doesn't expose everything by default (= security concern).

@@ -248,11 +248,27 @@ func discoverDockerContainers(
 		}
 
 		ipAddress := ""
-		if settings, found := container.NetworkSettings.Networks[dockerNetworkName]; found {
+		ipFound := func() bool { return ipAddress != "" }
+
+		if !ipFound() && dockerNetworkName == "_auto_" { // automatic resolving by trusting the reported IP address
+			ipAddress = func() string {
+				if len(container.NetworkSettings.Networks) != 1 {
+					return ""
+				}
+
+				for _, nwk := range container.NetworkSettings.Networks { // only 1 loop iteration
+					return nwk.IPAddress
+				}
+
+				return ""
+			}()
+		}
+
+		if settings, found := container.NetworkSettings.Networks[dockerNetworkName]; !ipFound() && found {
 			ipAddress = settings.IPAddress // prefer IP from the asked dockerNetworkName
 		}
 
-		if settings, found := container.NetworkSettings.Networks["bridge"]; ipAddress == "" && found {
+		if settings, found := container.NetworkSettings.Networks["bridge"]; !ipFound() && found {
 			ipAddress = settings.IPAddress // fall back to bridge IP if not found
 		}
 
@@ -260,7 +276,7 @@ func discoverDockerContainers(
 		// network namespace (= no direct connectivity to the overlay network), our last-ditch effort
 		// is to resolve its docker_gwbridge IP, but it is not visible from "$ docker inspect" output,
 		// but from "$ docker network inspect docker_gwbridge" instead
-		if ipAddress == "" {
+		if !ipFound() {
 			gwbridgeNetworkInspectOutput, err := gwbridgeNetworkInspectOnce()
 			if err != nil {
 				return nil, err
@@ -276,7 +292,7 @@ func discoverDockerContainers(
 			}
 		}
 
-		if ipAddress == "" {
+		if !ipFound() {
 			continue
 		}
 

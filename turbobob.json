@@ -39,6 +39,7 @@
 	],
 	"os_arches": {
 		"linux-amd64": true,
+		"linux-arm64": true,
 		"linux-arm": true
 	},
 	"docker_images": [
@@ -46,7 +47,7 @@
 			"image": "fn61/edgerouter",
 			"dockerfile_path": "Dockerfile",
 			"tag_latest": true,
-			"platforms": ["linux/amd64", "linux/arm/v7"]
+			"platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"]
 		}
 	]
 }

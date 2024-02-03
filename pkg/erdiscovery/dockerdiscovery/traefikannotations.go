@@ -110,13 +110,16 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 
 			return erconfig.AuthV0Backend(bearerToken, backend), nil
 		case "sso":
-			tenant := service.Labels["edgerouter.auth_sso.tenant"]
-			if tenant == "" {
-				return erconfig.Backend{}, errors.New("edgerouter.auth_sso.tenant empty")
-			}
-
 			// looks like t-2/monitoring_prometheus
-			audience := fmt.Sprintf("%s/%s", tenant, service.Name)
+			//
+			// previously we used to autogenerate with `<tenant>/<service name>` (only tenant was given as label)
+			// but the problem was that the SSO server has manual configuration of redirect allow list in form of `hostname` => `audience` map.
+			// thus because service names can change (think: created from docker-compose with makes service name
+			// contains directory name of compose file), the audience strings can go out-of-sync, leading to hard-to-debug issues.
+			audience := service.Labels["edgerouter.auth_sso.audience"]
+			if audience == "" {
+				return erconfig.Backend{}, errors.New("edgerouter.auth_sso.audience empty")
+			}
 
 			// is not a security issue if empty (nobody gets through then)
 			users := strings.Split(service.Labels["edgerouter.auth_sso.users"], ",")

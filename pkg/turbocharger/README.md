@@ -1,6 +1,8 @@
 Turbocharger
 ============
 
+![](logo.webp)
+
 "Learn this one weird trick to CDN-enable your applications."
 
 Allows your loadbalancer to know exactly when (and which) files are changed due to the a URL mount

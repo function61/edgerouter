@@ -6,13 +6,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: docker/setup-buildx-action@v1
 
     - name: Build
       run: |
-        curl --fail --location --silent --output bob https://function61.com/go/turbobob-latest-stable-linux-amd64 && chmod +x bob
+        set -eu
+        curl --fail --location --no-progress-meter --output bob https://function61.com/go/turbobob-latest-stable-linux-amd64 && chmod +x bob
         ./bob build in-ci-autodetect-settings
       env:
         DOCKER_CREDS: ${{ secrets.DOCKER_CREDS }}

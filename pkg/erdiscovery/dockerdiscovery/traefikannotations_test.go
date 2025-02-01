@@ -160,6 +160,28 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
     }
   }
 }`),
+		mkTestCase("multiple_subrules", ip101, labels{
+			"traefik.frontend.rule": "Host:example.com;PathPrefix:/admin/",
+			"edgerouter.auth":       "public",
+		}, `{
+  "id": "multiple_subrules",
+  "frontends": [
+    {
+      "kind": "hostname",
+      "hostname": "example.com",
+      "path_prefix": "/admin/"
+    }
+  ],
+  "backend": {
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": [
+        "http://192.168.1.101:80"
+      ],
+      "pass_host_header": true
+    }
+  }
+}`),
 	}
 
 	for _, tc := range tcs {
@@ -173,4 +195,12 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
 			assert.EqualString(t, string(appJson), tc.expectedOutput)
 		})
 	}
+}
+
+func TestParseSubRules(t *testing.T) {
+	rule, err := parseTraefikFrontendRule("Host:example.com;PathPrefix:/admin/")
+	assert.Ok(t, err)
+	asJSON, err := json.Marshal(rule)
+	assert.Ok(t, err)
+	assert.EqualString(t, string(asJSON), `{"Host":"example.com","PathPrefix":"/admin/"}`)
 }

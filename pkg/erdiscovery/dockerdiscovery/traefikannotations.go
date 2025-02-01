@@ -63,11 +63,21 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 	}
 
 	frontend, err := func() (erconfig.Frontend, error) {
+		parsed, err := parseTraefikFrontendRule(frontendRule)
+		if err != nil {
+			return erconfig.Frontend{}, err
+		}
+
+		opts := []erconfig.FrontendOpt{}
+		if parsed.PathPrefix != "" {
+			opts = append(opts, erconfig.PathPrefix(parsed.PathPrefix))
+		}
+
 		switch {
-		case strings.HasPrefix(frontendRule, "Host:"):
-			return erconfig.SimpleHostnameFrontend(frontendRule[len("Host:"):]), nil
-		case strings.HasPrefix(frontendRule, "HostRegexp:"):
-			return erconfig.RegexpHostnameFrontend(frontendRule[len("HostRegexp:"):]), nil
+		case parsed.Host != "":
+			return erconfig.SimpleHostnameFrontend(parsed.Host, opts...), nil
+		case parsed.HostRegexp != "":
+			return erconfig.RegexpHostnameFrontend(parsed.HostRegexp, opts...), nil
 		default:
 			return erconfig.Frontend{}, fmt.Errorf("unsupported frontend rule: %s", frontendRule)
 		}
@@ -136,4 +146,34 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		backendAuthorized)
 
 	return &app, nil
+}
+
+type traefikFrontendRule struct {
+	Host       string `json:",omitempty"` // `Host:...` rule
+	PathPrefix string `json:",omitempty"` // `PathPrefix:...` rule
+	HostRegexp string `json:",omitempty"` // `HostRegexp:...` rule
+}
+
+// https://doc.traefik.io/traefik/v1.7/user-guide/examples/#using-labels-in-docker-composeyml
+func parseTraefikFrontendRule(rule string) (traefikFrontendRule, error) {
+	parsed := traefikFrontendRule{}
+
+	// `Host:example.com;PathPrefix:/admin/`
+	// => `["Host:example.com", "PathPrefix:/admin/"]`
+	subRules := strings.Split(rule, ";")
+
+	for _, subRule := range subRules {
+		switch {
+		case strings.HasPrefix(subRule, "Host:"):
+			parsed.Host = subRule[len("Host:"):]
+		case strings.HasPrefix(subRule, "PathPrefix:"):
+			parsed.PathPrefix = subRule[len("PathPrefix:"):]
+		case strings.HasPrefix(subRule, "HostRegexp:"):
+			parsed.HostRegexp = subRule[len("HostRegexp:"):]
+		default:
+			return parsed, fmt.Errorf("unsupported rule: '%s'", subRule)
+		}
+	}
+
+	return parsed, nil
 }

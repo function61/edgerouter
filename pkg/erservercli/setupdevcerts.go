@@ -3,7 +3,6 @@ package erservercli
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,7 +42,7 @@ func setupDevCertsEntry(opts Options) *cobra.Command {
 }
 
 func serverCertGenerate(hostname string, opts Options) error {
-	tempDir, err := ioutil.TempDir("", "edgerouter-mkcert-*")
+	tempDir, err := os.MkdirTemp("", "edgerouter-mkcert-*")
 	if err != nil {
 		return err
 	}
@@ -78,7 +77,7 @@ func serverCertGenerate(hostname string, opts Options) error {
 		return err
 	}
 
-	if err := translateIfSudoError(ioutil.WriteFile(
+	if err := translateIfSudoError(os.WriteFile(
 		opts.ConfigDir().DevelopmentCertificate(),
 		append(cert, key...),
 		0600),
@@ -119,7 +118,7 @@ func findReadAndDeleteFile(globPattern string) ([]byte, error) {
 		return nil, fmt.Errorf("findReadAndDeleteFile: expected 1 match; got %d", len(globMatches))
 	}
 
-	content, err := ioutil.ReadFile(globMatches[0])
+	content, err := os.ReadFile(globMatches[0])
 	if err != nil {
 		return nil, err
 	}

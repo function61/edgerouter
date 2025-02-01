@@ -163,8 +163,6 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		tc := tc // pin
-
 		t.Run(tc.input.Name, func(t *testing.T) {
 			app, err := traefikAnnotationsToApp(tc.input)
 			assert.Ok(t, err)

@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -53,7 +53,7 @@ func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, 
 			}
 
 			r.Header.Set("Content-Type", contentType)
-			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+			r.Body = io.NopCloser(bytes.NewReader(body))
 		}
 
 		return nil
@@ -70,7 +70,7 @@ func serveCached404Page(url404 string, cacheNotFound *cache404) ([]byte, string,
 			return nil, "", fmt.Errorf("failed ezhttp.Get 404 page: %w", err)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			return nil, "", err
 		}

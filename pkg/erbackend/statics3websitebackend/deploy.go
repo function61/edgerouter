@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"path"
 	"path/filepath"
@@ -163,7 +162,7 @@ func uploadAllFiles(ctx context.Context, tarArchive io.Reader, upload *uploadJob
 // filePath looks like "images/2018/unificontroller-stats.png"
 func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) (*s3.PutObjectInput, error) {
 	// stupid S3 client requires io.ReadSeeker, so we've to read the entire file in memory......
-	wholeFileInMemory, err := ioutil.ReadAll(content)
+	wholeFileInMemory, err := io.ReadAll(content)
 	if err != nil {
 		return nil, err
 	}

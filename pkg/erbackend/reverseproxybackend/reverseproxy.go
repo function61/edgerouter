@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/cozy/httpcache"
 	"github.com/cozy/httpcache/diskcache"
@@ -29,10 +28,6 @@ import (
 //   2) stop Edgerouter, empty cache. start Edgerouter
 //   3) press F5 from browser. this'll inject 304 Not Modified into cache (browser expects 304 but CACHE NOT)
 //   4) now use cURL to request the same resource (= without caching), and you'll get 304 🤦
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
 
 func New(appId string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger) (http.Handler, error) {
 	handler, err := NewWithModifyResponse(appId, opts, nil)

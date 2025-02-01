@@ -95,8 +95,6 @@ allow_specified {
 			"your IP (100.56.80.67) is not allowed (implicit deny)",
 		},
 	} {
-		tc := tc // pin
-
 		testcaseSubject := fmt.Sprintf("%s -> %s", tc.ip, tc.app) // for failures
 
 		t.Run(testcaseSubject, func(t *testing.T) {

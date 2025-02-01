@@ -4,7 +4,6 @@ package erservercli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -93,7 +92,7 @@ func installAsService(opts Options) error {
 		return err
 	}
 
-	return ioutil.WriteFile(envFile, []byte(`
+	return os.WriteFile(envFile, []byte(`
 # --- Docker integration
 DOCKER_URL=unix:///var/run/docker.sock
 NETWORK_NAME=docker_gwbridge

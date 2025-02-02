@@ -21,19 +21,6 @@
 			"dev_pro_tips": [
 				"docker network connect fn61 tbdev-edgerouter-default"
 			]
-		},
-		{
-			"name": "publisher",
-			"uses": "docker://fn61/buildkit-publisher:20200228_1755_83c203ff",
-			"mount_destination": "/workspace",
-			"commands": {
-				"publish": ["publish-gh.sh", "function61/edgerouter", "rel/"],
-				"dev": ["bash"]
-			},
-			"pass_envs": [
-				"GITHUB_TOKEN",
-				"EVENTHORIZON"
-			]
 		}
 	],
 	"os_arches": {

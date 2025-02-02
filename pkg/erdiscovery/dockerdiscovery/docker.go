@@ -296,11 +296,22 @@ func discoverDockerContainers(
 			continue
 		}
 
+		// service name is kind of important as it might be used in different kinds of identifiers.
+		// maybe in ACLs, to query logs etc.
+		//
+		// let's try to use the most stable thing. the container name is not great, as Compose laid the names like:
+		// - /calendarserver_baikal_1
+		// then they arbitrarily changed it from underscores to dashes:
+		// - /calendarserver-baikal-1
+		//
+		// so looks like the compose project name is more stable and reliable, only after that prefer the container name.
+		//
 		// use swarm service name if defined, so we get stable names ("baikal_baikal") instead of
 		// "/baikal_baikal.1.mifsjkoi93gwh9yg89c51va0t" for Swarm-based containers. normally we don't
-		// use this discoverDockerContainers() but Swarm, but if we use docker_gwbridge this is how
+		// use this discoverDockerContainers() for Swarm, but if we use docker_gwbridge this is how
 		// we discover conainers outside of Swarm network contexts
 		serviceName := coalesce(
+			container.Labels["com.docker.compose.project"],
 			container.Labels["com.docker.swarm.service.name"],
 			container.Names[0])
 

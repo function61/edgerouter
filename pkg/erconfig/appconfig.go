@@ -159,8 +159,9 @@ func (b *BackendOptsReverseProxy) Validate() error {
 }
 
 type BackendOptsAwsLambda struct {
-	FunctionName string `json:"function_name"`
-	RegionId     string `json:"region_id"`
+	FunctionName         string `json:"function_name"`
+	RegionId             string `json:"region_id"`
+	PayloadFormatVersion string `json:"payload_format_version,omitempty"` // "1.0" (the default) or "2.0". https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html https://www.serverless.com/framework/docs/providers/aws/events/apigateway
 }
 
 func (b *BackendOptsAwsLambda) Validate() error {
@@ -304,8 +305,9 @@ func LambdaBackend(functionName string, regionId string) Backend {
 	return Backend{
 		Kind: BackendKindAwsLambda,
 		AwsLambdaOpts: &BackendOptsAwsLambda{
-			FunctionName: functionName,
-			RegionId:     regionId,
+			FunctionName:         functionName,
+			RegionId:             regionId,
+			PayloadFormatVersion: "2.0",
 		},
 	}
 }

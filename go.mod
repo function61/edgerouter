@@ -3,8 +3,8 @@ module github.com/function61/edgerouter
 go 1.23.1
 
 require (
-	github.com/aws/aws-lambda-go v1.14.0
-	github.com/aws/aws-sdk-go v1.30.20
+	github.com/aws/aws-lambda-go v1.49.0
+	github.com/aws/aws-sdk-go v1.55.7
 	github.com/cozy/httpcache v0.0.0-20180914105234-d3dc4988de66
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/function61/certbus v0.0.0-20210703130951-f282ab2b0381
@@ -28,7 +28,7 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.3.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kataras/jwt v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

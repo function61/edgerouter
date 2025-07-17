@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +25,7 @@ import (
 type lambdaBackend struct {
 	functionName string
 	lambda       *lambda.Lambda
+	isPayloadV2  bool // https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
 }
 
 func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, error) {
@@ -36,28 +39,112 @@ func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, 
 		return nil, err
 	}
 
+	isPayloadV2, err := validatePayloadFormatVersion(opts.PayloadFormatVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	handler := &lambdaBackend{
 		functionName: opts.FunctionName,
 		lambda: lambda.New(
 			awsSession,
 			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionId)),
+		isPayloadV2: isPayloadV2,
 	}
 
 	return turbocharger.WrapWithMiddlewareIfConfigAvailable(handler, logger)
 }
 
 func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if b.isPayloadV2 {
+		// https://pkg.go.dev/github.com/aws/aws-lambda-go/events#APIGatewayV2HTTPRequest
+		b.serveHTTPModel(w, r)
+	} else {
+		// https://pkg.go.dev/github.com/aws/aws-lambda-go/events#APIGatewayProxyRequest
+		// https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+		b.serveRESTModel(w, r)
+	}
+}
+
+func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	requestBodyBase64 := &bytes.Buffer{}
-	requestBodyBase64Encoder := base64.NewEncoder(base64.StdEncoding, requestBodyBase64)
-	if _, err := io.Copy(requestBodyBase64Encoder, r.Body); err != nil {
+	bodyBase64, err := encodeToBase64RawStd(r.Body)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := requestBodyBase64Encoder.Close(); err != nil {
+	headers, err := copyHeaders(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sourceIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+	now := time.Now().UTC()
+
+	const routeKey = "$default"
+
+	proxyRequestJson, err := json.Marshal(events.APIGatewayV2HTTPRequest{
+		Version:        "2.0",
+		RouteKey:       routeKey,
+		RawPath:        r.URL.Path,
+		RawQueryString: r.URL.RawQuery,
+		// Cookies:               []string{},
+		Headers:               headers,
+		QueryStringParameters: queryParametersToSimpleMap(r.URL.Query()),
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			RouteKey: routeKey,
+			Stage:    "$default",
+			// RequestID:  "",
+			DomainName: r.URL.Host,
+			Time:       now.Format("02/Jan/2006:15:04:05 -0700"), // what a dumbass format
+			TimeEpoch:  now.UnixMilli(),
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method:    r.Method,
+				Path:      r.URL.Path,
+				Protocol:  r.Proto,
+				SourceIP:  sourceIP,
+				UserAgent: r.UserAgent(),
+			},
+		},
+		Body:            bodyBase64,
+		IsBase64Encoded: true,
+	})
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
+		FunctionName: aws.String(b.functionName),
+		Payload:      proxyRequestJson,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	payloadResponse := &events.APIGatewayV2HTTPResponse{}
+	if err := json.Unmarshal(lambdaResponse.Payload, payloadResponse); err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	if err := proxyApiGatewayResponse(payloadResponse, w); err != nil {
+		// TODO: if we already wrote headers, this will not succeed
+		http.Error(w, err.Error(), http.StatusBadGateway)
+	}
+}
+
+func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	requestBodyBase64, err := encodeToBase64RawStd(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -78,8 +165,8 @@ func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if requestBodyBase64.Len() > 0 {
-		proxyRequest.Body = requestBodyBase64.String()
+	if len(requestBodyBase64) > 0 {
+		proxyRequest.Body = requestBodyBase64
 		proxyRequest.IsBase64Encoded = true
 	}
 
@@ -89,7 +176,7 @@ func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lambdaResponse, err := b.lambda.Invoke(&lambda.InvokeInput{
+	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
 		Payload:      proxyRequestJson,
 	})
@@ -110,13 +197,20 @@ func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := proxyApiGatewayResponse(payloadResponse, w); err != nil {
+	if err := proxyApiGatewayResponse(&events.APIGatewayV2HTTPResponse{
+		StatusCode:        payloadResponse.StatusCode,
+		Headers:           payloadResponse.Headers,
+		MultiValueHeaders: payloadResponse.MultiValueHeaders,
+		Body:              payloadResponse.Body,
+		IsBase64Encoded:   payloadResponse.IsBase64Encoded,
+		// only field missing from old struct: `Cookies`
+	}, w); err != nil {
 		// TODO: if we already wrote headers, this will not succeed
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
 }
 
-func proxyApiGatewayResponse(payloadResponse *events.APIGatewayProxyResponse, w http.ResponseWriter) error {
+func proxyApiGatewayResponse(payloadResponse *events.APIGatewayV2HTTPResponse, w http.ResponseWriter) error {
 	responseHeaders := w.Header()
 
 	for key, val := range payloadResponse.Headers {
@@ -164,4 +258,27 @@ func copyHeaders(r *http.Request) (map[string]string, error) {
 	}
 
 	return headers, nil
+}
+
+func encodeToBase64RawStd(content io.Reader) (string, error) {
+	bodyBuffered := &bytes.Buffer{}
+	encodeBase64 := base64.NewEncoder(base64.RawStdEncoding, bodyBuffered)
+	if _, err := io.Copy(encodeBase64, content); err != nil {
+		return "", err
+	}
+	if err := encodeBase64.Close(); err != nil {
+		return "", err
+	}
+	return bodyBuffered.String(), nil
+}
+
+func validatePayloadFormatVersion(version string) (bool, error) {
+	switch version {
+	case "1.0", "":
+		return false, nil
+	case "2.0":
+		return true, nil
+	default:
+		return false, fmt.Errorf("unrecognized PayloadFormatVersion: %s", version)
+	}
 }

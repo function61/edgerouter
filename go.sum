@@ -118,6 +118,8 @@ github.com/function61/gokit v0.0.0-20200608105953-12235c68c38b h1:oSy6OCp5pk+hOb
 github.com/function61/gokit v0.0.0-20200608105953-12235c68c38b/go.mod h1:qkZftFp+nvc6BitjWRb9GXS4A1tQ2BuASctzscHa9Io=
 github.com/function61/id v0.0.0-20210304120117-4b4b73375b3b h1:fYmYKIJ7g64KVPY83/VN+0NHr7+0CWh0bGedF0ECcQA=
 github.com/function61/id v0.0.0-20210304120117-4b4b73375b3b/go.mod h1:H6jDV5Rtogj/kcu1yjD7lROUo1E78sHbt1R6gTLWhfU=
+github.com/function61/id v0.0.0-20250906165258-65cb12323d4d h1:uuO1vlqG8k6uJeQKNalML6UuyPLhEfrFKABrn2Jfbc4=
+github.com/function61/id v0.0.0-20250906165258-65cb12323d4d/go.mod h1:H6jDV5Rtogj/kcu1yjD7lROUo1E78sHbt1R6gTLWhfU=
 github.com/function61/lambda-alertmanager v1.0.2-0.20200608093215-f2ba13863946/go.mod h1:0FDhXiyare6REj9arrCetb7ZHlNbjU+pagx+toM5tWM=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-acme/lego/v4 v4.2.0/go.mod h1:jmhqxBaangB8txXZKjRLTPXFXUwPCTU2fU8S9/eQzBI=

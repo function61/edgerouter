@@ -10,7 +10,7 @@ require (
 	github.com/function61/certbus v0.0.0-20210703130951-f282ab2b0381
 	github.com/function61/eventhorizon v0.2.1-0.20200610093004-78aa8b3a710f
 	github.com/function61/gokit v0.0.0-20200608105953-12235c68c38b
-	github.com/function61/id v0.0.0-20210304120117-4b4b73375b3b
+	github.com/function61/id v0.0.0-20250906165258-65cb12323d4d
 	github.com/gorilla/mux v1.7.4
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/prometheus/client_golang v1.4.1

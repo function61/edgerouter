@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -270,6 +271,15 @@ func discoverDockerContainers(
 
 		if settings, found := container.NetworkSettings.Networks["bridge"]; !ipFound() && found {
 			ipAddress = settings.IPAddress // fall back to bridge IP if not found
+		}
+
+		if settings, found := container.NetworkSettings.Networks["host"]; !ipFound() && found {
+			// when host network, settings doesn't specify IP address
+			if settings.IPAddress != "" {
+				slog.Warn("IPAddress not expected for host", "container", container.Id)
+				continue
+			}
+			ipAddress = "127.0.0.1"
 		}
 
 		// if container is attached to e.g. an overlay network, but Edgerouter sits e.g. in the host

@@ -35,7 +35,7 @@ func NewAppUpdated(
 
 type AppDeleted struct {
 	meta ehevent.EventMeta
-	Id   string
+	ID   string `json:"Id"`
 }
 
 func (e *AppDeleted) MetaType() string         { return "AppDeleted" }
@@ -47,6 +47,6 @@ func NewAppDeleted(
 ) *AppDeleted {
 	return &AppDeleted{
 		meta: meta,
-		Id:   id,
+		ID:   id,
 	}
 }

@@ -44,7 +44,7 @@ func discoveryList() error {
 		}
 
 		tbl.AddRow(
-			app.Id,
+			app.ID,
 			strings.Join(frontendDescrs, ", "),
 			app.Backend.Describe())
 	}
@@ -54,7 +54,7 @@ func discoveryList() error {
 	return nil
 }
 
-func discoveryDeleteApplication(appId string) error {
+func discoveryDeleteApplication(appID string) error {
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func discoveryDeleteApplication(appId string) error {
 		return err
 	}
 
-	app := erconfig.FindApplication(appId, apps)
+	app := erconfig.FindApplication(appID, apps)
 	if app == nil {
 		return errors.New("app to delete not found")
 	}
@@ -100,7 +100,7 @@ func discoveryPut(content io.Reader, newOk bool) error {
 		return err
 	}
 
-	appAlreadyExists := erconfig.FindApplication(app.Id, existingApps) != nil
+	appAlreadyExists := erconfig.FindApplication(app.ID, existingApps) != nil
 
 	// sanity checks
 
@@ -109,7 +109,7 @@ func discoveryPut(content io.Reader, newOk bool) error {
 	}
 
 	if !newOk && !appAlreadyExists {
-		return errors.New("App doesn't exist. did you mean to create new with '--new'?")
+		return errors.New("app doesn't exist. did you mean to create new with '--new'?")
 	}
 
 	return discoverySvc.UpdateApplication(ctx, *app)
@@ -132,7 +132,7 @@ func discoveryPutEntry() *cobra.Command {
 	return cmd
 }
 
-func discoveryCat(appId string) error {
+func discoveryCat(appID string) error {
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func discoveryCat(appId string) error {
 		return err
 	}
 
-	app := erconfig.FindApplication(appId, apps)
+	app := erconfig.FindApplication(appID, apps)
 	if app == nil {
 		return errors.New("app not found")
 	}

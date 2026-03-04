@@ -115,7 +115,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 	//       are started.
 	//
 	// file is a temporary solution - these will have to live in EventHorizon
-	ipRules, err := loadIpRules("/etc/edgerouter/ip-rules.hcl")
+	ipRules, err := loadIPRules("/etc/edgerouter/ip-rules.hcl")
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 		}
 
 		// todo: respect x-forwarded-for headers but only if configured as trusted
-		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.Id, ipRules); !allowed {
+		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.ID, ipRules); !allowed {
 			http.Error(w, errStr, http.StatusForbidden)
 			return mount
 		}
@@ -186,21 +186,21 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 			mount = serveRequest(w, r)
 		}), w, r)
 
-		appId := func() string {
+		appID := func() string {
 			if mount != nil {
-				return mount.App.Id
+				return mount.App.ID
 			} else {
 				return "appNotFound"
 			}
 		}()
 
 		if stats.Code < 400 {
-			incAppCodeMethodCounter(metrics.requestsOk, appId, strconv.Itoa(stats.Code), r.Method)
+			incAppCodeMethodCounter(metrics.requestsOk, appID, strconv.Itoa(stats.Code), r.Method)
 		} else {
-			incAppCodeMethodCounter(metrics.requestsFail, appId, strconv.Itoa(stats.Code), r.Method)
+			incAppCodeMethodCounter(metrics.requestsFail, appID, strconv.Itoa(stats.Code), r.Method)
 		}
 
-		metrics.requestDuration.WithLabelValues(appId).Observe(stats.Duration.Seconds())
+		metrics.requestDuration.WithLabelValues(appID).Observe(stats.Duration.Seconds())
 		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
 	})
 

@@ -44,7 +44,7 @@ func ipAllowed(ipAndPortStr string, appToAccess string, rules []ipRule) (bool, s
 
 // do not use directly
 func ipAllowedInternal(ip netaddr.IP, appToAccess string, rules []ipRule) (bool, string) {
-	if matchingRule := ruleForIp(ip, rules); matchingRule != nil {
+	if matchingRule := ruleForIP(ip, rules); matchingRule != nil {
 		if matchingRule.AllowsApp(appToAccess) {
 			return true, ""
 		} else {
@@ -56,7 +56,7 @@ func ipAllowedInternal(ip netaddr.IP, appToAccess string, rules []ipRule) (bool,
 	return false, fmt.Sprintf("your IP (%s) is not allowed (implicit deny)", ip.String())
 }
 
-func ruleForIp(ip netaddr.IP, rules []ipRule) *ipRule {
+func ruleForIP(ip netaddr.IP, rules []ipRule) *ipRule {
 	for _, rule := range rules {
 		if rule.ipPrefix.Contains(ip) {
 			return &rule
@@ -89,7 +89,7 @@ type ipRulesConfig struct {
 	} `json:"allow_specified"`
 }
 
-func loadIpRules(ipRulesFile string) ([]ipRule, error) {
+func loadIPRules(ipRulesFile string) ([]ipRule, error) {
 	f, err := os.Open(ipRulesFile)
 	if err != nil {
 		if os.IsNotExist(err) { // not an error => we just don't have any rules.. pun intended :)
@@ -128,10 +128,10 @@ func parseHclRules(content io.Reader) ([]ipRule, error) {
 
 func unmarhsalHcl(content io.Reader, data interface{}) error {
 	// transform to JSON first, because we have better tools to unmarshal that
-	asJson, err := hcl2json.Convert(content)
+	asJSON, err := hcl2json.Convert(content)
 	if err != nil {
 		return err
 	}
 
-	return jsonfile.Unmarshal(asJson, data, true)
+	return jsonfile.Unmarshal(asJSON, data, true)
 }

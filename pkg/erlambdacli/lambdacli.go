@@ -39,7 +39,7 @@ func mkEntrypoint() *cobra.Command {
 	return cmd
 }
 
-func mk(applicationId string, hostname string, path string, stripPath bool, functionName string, regionId string) error {
+func mk(applicationID string, hostname string, path string, stripPath bool, functionName string, regionID string) error {
 	discoverySvc, err := defaultdiscovery.New(nil)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func mk(applicationId string, hostname string, path string, stripPath bool, func
 		return err
 	}
 
-	duplicate := erconfig.FindApplication(applicationId, existingApplications)
+	duplicate := erconfig.FindApplication(applicationID, existingApplications)
 	if duplicate != nil {
 		return errors.New("application already exists")
 	}
@@ -64,9 +64,9 @@ func mk(applicationId string, hostname string, path string, stripPath bool, func
 	}
 
 	app := erconfig.SimpleApplication(
-		applicationId,
+		applicationID,
 		erconfig.SimpleHostnameFrontend(hostname, opts...),
-		erconfig.LambdaBackend(functionName, regionId)) // version is empty for now - no deployment yet
+		erconfig.LambdaBackend(functionName, regionID)) // version is empty for now - no deployment yet
 
 	return discoverySvc.UpdateApplication(ctx, app)
 }

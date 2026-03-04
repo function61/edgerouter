@@ -42,7 +42,7 @@ func Entrypoint() *cobra.Command {
 
 func s3Deploy(
 	ctx context.Context,
-	applicationId string,
+	applicationID string,
 	deployVersion string,
 	pathToArchive string,
 ) error {
@@ -60,14 +60,14 @@ func s3Deploy(
 	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
-	if err := statics3websitebackend.Deploy(ctx, tarArchive, applicationId, deployVersion, discoverySvc); err != nil {
+	if err := statics3websitebackend.Deploy(ctx, tarArchive, applicationID, deployVersion, discoverySvc); err != nil {
 		return fmt.Errorf("statics3websitebackend deploy: %w", err)
 	}
 
 	return nil
 }
 
-func s3Mk(applicationId string, hostname string, path string, stripPath bool, bucketName string, regionId string) error {
+func s3Mk(applicationID string, hostname string, path string, stripPath bool, bucketName string, regionID string) error {
 	discoverySvc, err := defaultdiscovery.New(nil)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func s3Mk(applicationId string, hostname string, path string, stripPath bool, bu
 		return err
 	}
 
-	duplicate := erconfig.FindApplication(applicationId, existingApplications)
+	duplicate := erconfig.FindApplication(applicationID, existingApplications)
 	if duplicate != nil {
 		return errors.New("application already exists")
 	}
@@ -92,9 +92,9 @@ func s3Mk(applicationId string, hostname string, path string, stripPath bool, bu
 	}
 
 	app := erconfig.SimpleApplication(
-		applicationId,
+		applicationID,
 		erconfig.SimpleHostnameFrontend(hostname, opts...),
-		erconfig.S3Backend(bucketName, regionId, "")) // version is empty for now - no deployment yet
+		erconfig.S3Backend(bucketName, regionID, "")) // version is empty for now - no deployment yet
 
 	return discoverySvc.UpdateApplication(ctx, app)
 }

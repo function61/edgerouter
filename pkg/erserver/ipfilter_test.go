@@ -15,14 +15,14 @@ func TestNoRulesAllAllowed(t *testing.T) {
 }
 
 func TestInvalidIP(t *testing.T) {
-	invalidIp := "500.400.300.200.100:80"
+	invalidIP := "500.400.300.200.100:80"
 
 	// without rules IP parsing is skipped
-	allowed, errStr := ipAllowed(invalidIp, "anyapp", nil)
+	allowed, errStr := ipAllowed(invalidIP, "anyapp", nil)
 	assert.Assert(t, allowed)
 	assert.Assert(t, errStr == "")
 
-	allowed, errStr = ipAllowed(invalidIp, "anyapp", []ipRule{allowAllApps(netaddr.MustParseIPPrefix("0.0.0.0/0"))})
+	allowed, errStr = ipAllowed(invalidIP, "anyapp", []ipRule{allowAllApps(netaddr.MustParseIPPrefix("0.0.0.0/0"))})
 	assert.Assert(t, !allowed)
 	assert.EqualString(t, errStr, `invalid IP: ParseIP("500.400.300.200.100"): IPv4 field has value >255`)
 }
@@ -45,14 +45,14 @@ allow_specified {
 		return netaddr.MustParseIP(ipStr)
 	}
 
-	assert.EqualString(t, ruleForIp(ip("192.168.1.18"), rules).ipPrefix.String(), "192.168.1.0/24")
-	assert.EqualString(t, ruleForIp(ip("127.0.0.200"), rules).ipPrefix.String(), "127.0.0.0/24")
-	assert.Assert(t, ruleForIp(ip("127.0.1.200"), rules) == nil)
+	assert.EqualString(t, ruleForIP(ip("192.168.1.18"), rules).ipPrefix.String(), "192.168.1.0/24")
+	assert.EqualString(t, ruleForIP(ip("127.0.0.200"), rules).ipPrefix.String(), "127.0.0.0/24")
+	assert.Assert(t, ruleForIP(ip("127.0.1.200"), rules) == nil)
 
-	assert.EqualString(t, ruleForIp(ip("100.75.44.30"), rules).ipPrefix.String(), "100.75.44.30/32")
-	assert.Assert(t, ruleForIp(ip("100.75.44.31"), rules) == nil)
+	assert.EqualString(t, ruleForIP(ip("100.75.44.30"), rules).ipPrefix.String(), "100.75.44.30/32")
+	assert.Assert(t, ruleForIP(ip("100.75.44.31"), rules) == nil)
 
-	assert.EqualJson(t, ruleForIp(ip("100.56.80.66"), rules).allowedAppIds, `[
+	assert.EqualJson(t, ruleForIP(ip("100.56.80.66"), rules).allowedAppIds, `[
   "test"
 ]`)
 

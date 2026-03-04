@@ -48,7 +48,7 @@ func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, 
 		functionName: opts.FunctionName,
 		lambda: lambda.New(
 			awsSession,
-			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionId)),
+			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionID)),
 		isPayloadV2: isPayloadV2,
 	}
 
@@ -87,7 +87,7 @@ func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 
 	const routeKey = "$default"
 
-	proxyRequestJson, err := json.Marshal(events.APIGatewayV2HTTPRequest{
+	proxyRequestJSON, err := json.Marshal(events.APIGatewayV2HTTPRequest{
 		Version:        "2.0",
 		RouteKey:       routeKey,
 		RawPath:        r.URL.Path,
@@ -120,7 +120,7 @@ func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 
 	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
-		Payload:      proxyRequestJson,
+		Payload:      proxyRequestJSON,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -133,7 +133,7 @@ func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := proxyApiGatewayResponse(payloadResponse, w); err != nil {
+	if err := proxyAPIGatewayResponse(payloadResponse, w); err != nil {
 		// TODO: if we already wrote headers, this will not succeed
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
@@ -170,7 +170,7 @@ func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 		proxyRequest.IsBase64Encoded = true
 	}
 
-	proxyRequestJson, err := json.Marshal(&proxyRequest)
+	proxyRequestJSON, err := json.Marshal(&proxyRequest)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,7 +178,7 @@ func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 
 	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
-		Payload:      proxyRequestJson,
+		Payload:      proxyRequestJSON,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -197,7 +197,7 @@ func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := proxyApiGatewayResponse(&events.APIGatewayV2HTTPResponse{
+	if err := proxyAPIGatewayResponse(&events.APIGatewayV2HTTPResponse{
 		StatusCode:        payloadResponse.StatusCode,
 		Headers:           payloadResponse.Headers,
 		MultiValueHeaders: payloadResponse.MultiValueHeaders,
@@ -210,7 +210,7 @@ func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func proxyApiGatewayResponse(payloadResponse *events.APIGatewayV2HTTPResponse, w http.ResponseWriter) error {
+func proxyAPIGatewayResponse(payloadResponse *events.APIGatewayV2HTTPResponse, w http.ResponseWriter) error {
 	responseHeaders := w.Header()
 
 	for key, val := range payloadResponse.Headers {

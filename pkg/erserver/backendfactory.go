@@ -23,7 +23,7 @@ import (
 var bendCache = newBackendCache()
 
 func makeBackend(
-	appId string,
+	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
 	parentLogger *log.Logger,
@@ -34,9 +34,9 @@ func makeBackend(
 	}
 
 	// only make new instance if config JSON has changed for this app ID
-	cached := bendCache.Find(appId, configDigest)
+	cached := bendCache.Find(appID, configDigest)
 	if cached == nil {
-		backend, err := makeBackendInternal(appId, backendConf, currentConfig, parentLogger)
+		backend, err := makeBackendInternal(appID, backendConf, currentConfig, parentLogger)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func makeBackend(
 			backend:      backend,
 			configDigest: configDigest,
 		}
-		bendCache.perAppId[appId] = cached
+		bendCache.perAppID[appID] = cached
 	}
 
 	return cached.backend, nil
@@ -53,20 +53,20 @@ func makeBackend(
 
 // called when actually making a new backend, instead of using a cached one
 func makeBackendInternal(
-	appId string,
+	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
 	parentLogger *log.Logger,
 ) (http.Handler, error) {
 	appSpecificLogger := func() *log.Logger { // helper
-		return logex.Prefix(appId, parentLogger)
+		return logex.Prefix(appID, parentLogger)
 	}
 
 	switch backendConf.Kind {
 	case erconfig.BackendKindS3StaticWebsite:
-		return statics3websitebackend.New(appId, *backendConf.S3StaticWebsiteOpts)
+		return statics3websitebackend.New(appID, *backendConf.S3StaticWebsiteOpts)
 	case erconfig.BackendKindReverseProxy:
-		return reverseproxybackend.New(appId, *backendConf.ReverseProxyOpts, appSpecificLogger())
+		return reverseproxybackend.New(appID, *backendConf.ReverseProxyOpts, appSpecificLogger())
 	case erconfig.BackendKindAwsLambda:
 		return lambdabackend.New(*backendConf.AwsLambdaOpts, appSpecificLogger())
 	case erconfig.BackendKindRedirect:
@@ -77,7 +77,7 @@ func makeBackendInternal(
 		return edgerouteradminbackend.New(currentConfig)
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
-			appId,
+			appID,
 			*backendConf.AuthV0Opts.AuthorizedBackend,
 			currentConfig,
 			parentLogger)
@@ -88,7 +88,7 @@ func makeBackendInternal(
 		return authv0backend.New(*backendConf.AuthV0Opts, authorizedBackend), nil
 	case erconfig.BackendKindAuthSso:
 		authorizedBackend, err := makeBackendInternal(
-			appId,
+			appID,
 			*backendConf.AuthSsoOpts.AuthorizedBackend,
 			currentConfig,
 			parentLogger)
@@ -112,7 +112,7 @@ type backendCache struct {
 	// the cache data structure might seem unusual. that's because we don't want multiple cache
 	// entries per one app - we want GC to be able to clean up no-longer-used handlers
 
-	perAppId map[string]*cacheEntry
+	perAppID map[string]*cacheEntry
 }
 
 type cacheEntry struct {
@@ -122,12 +122,12 @@ type cacheEntry struct {
 
 func newBackendCache() *backendCache {
 	return &backendCache{
-		perAppId: map[string]*cacheEntry{},
+		perAppID: map[string]*cacheEntry{},
 	}
 }
 
-func (b *backendCache) Find(appId string, configDigest []byte) *cacheEntry {
-	cached, found := b.perAppId[appId]
+func (b *backendCache) Find(appID string, configDigest []byte) *cacheEntry {
+	cached, found := b.perAppID[appID]
 	if !found {
 		return nil
 	}

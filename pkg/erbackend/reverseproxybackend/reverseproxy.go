@@ -29,8 +29,8 @@ import (
 //   3) press F5 from browser. this'll inject 304 Not Modified into cache (browser expects 304 but CACHE NOT)
 //   4) now use cURL to request the same resource (= without caching), and you'll get 304 🤦
 
-func New(appId string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger) (http.Handler, error) {
-	handler, err := NewWithModifyResponse(appId, opts, nil)
+func New(appID string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger) (http.Handler, error) {
+	handler, err := NewWithModifyResponse(appID, opts, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func New(appId string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger
 }
 
 func NewWithModifyResponse(
-	appId string,
+	appID string,
 	opts erconfig.BackendOptsReverseProxy,
 	modifyResponse func(r *http.Response) error,
 ) (http.Handler, error) {
@@ -49,13 +49,13 @@ func NewWithModifyResponse(
 	}
 
 	// transport that has optional TLS customizations and maybe caching (depending on options)
-	transport, err := maybeWrapWithCache(appId, opts, func() http.RoundTripper {
-		if opts.TlsConfig != nil { // got custom TLS config?
+	transport, err := maybeWrapWithCache(appID, opts, func() http.RoundTripper {
+		if opts.TLSConfig != nil { // got custom TLS config?
 			return &http.Transport{
 				TLSClientConfig: &tls.Config{
-					ServerName: opts.TlsConfig.ServerName,
+					ServerName: opts.TLSConfig.ServerName,
 					//nolint:gosec // InsecureSkipVerify intentionally configurable
-					InsecureSkipVerify: opts.TlsConfig.InsecureSkipVerify,
+					InsecureSkipVerify: opts.TLSConfig.InsecureSkipVerify,
 				},
 			}
 		} else {
@@ -72,7 +72,7 @@ func NewWithModifyResponse(
 			//nolint:gosec // Cryptographical randomness not required here
 			randomOriginIdx := rand.Intn(len(originUrls))
 
-			originUrl := originUrls[randomOriginIdx]
+			originURL := originUrls[randomOriginIdx]
 
 			maybeIndexSuffix := func() string { // "/foo/" => "/foo/index.html" (if configured)
 				if opts.IndexDocument != "" && strings.HasSuffix(req.URL.Path, "/") {
@@ -82,19 +82,19 @@ func NewWithModifyResponse(
 				}
 			}()
 
-			req.URL.Scheme = originUrl.Scheme // "http" | "https"
+			req.URL.Scheme = originURL.Scheme // "http" | "https"
 
 			// this specifies the host we're connecting to
-			req.URL.Host = originUrl.Host
+			req.URL.Host = originURL.Host
 
 			// sometimes we want the outgoing request to include the original "Host: ..." header, so
 			// the backend can see what hostname is in browser's address bar
 			if !opts.PassHostHeader {
-				req.Host = originUrl.Host
+				req.Host = originURL.Host
 			}
 
 			// origin's Path is "normally" empty (e.g. "http://example.com"), but can be used to add a prefix
-			req.URL.Path = originUrl.Path + req.URL.Path + maybeIndexSuffix
+			req.URL.Path = originURL.Path + req.URL.Path + maybeIndexSuffix
 
 			// remove query string if we know we're serving static content and the output does
 			// not vary based on query string. someone malicious could even be trying to flood our
@@ -115,7 +115,7 @@ func NewWithModifyResponse(
 }
 
 func maybeWrapWithCache(
-	appId string,
+	appID string,
 	opts erconfig.BackendOptsReverseProxy,
 	inner http.RoundTripper,
 ) (http.RoundTripper, error) {
@@ -124,7 +124,7 @@ func maybeWrapWithCache(
 	}
 
 	// there's no abstraction for getting system-level cache dir in Go
-	cacheLocation := filepath.Join("/var/cache/edgerouter", appId)
+	cacheLocation := filepath.Join("/var/cache/edgerouter", appID)
 
 	if err := os.MkdirAll(cacheLocation, 0700); err != nil {
 		return nil, fmt.Errorf("cachingreverseproxy: %w", err)
@@ -142,21 +142,21 @@ func maybeWrapWithCache(
 	return cache, nil
 }
 
-func parseOriginUrls(originUrlStrs []string) ([]url.URL, error) {
-	originUrls := []url.URL{}
+func parseOriginUrls(originURLStrs []string) ([]url.URL, error) {
+	originURLs := []url.URL{}
 
-	for _, originUrlStr := range originUrlStrs {
-		originUrl, err := url.Parse(originUrlStr)
+	for _, originURLStr := range originURLStrs {
+		originURL, err := url.Parse(originURLStr)
 		if err != nil {
 			return nil, err
 		}
 
-		originUrls = append(originUrls, *originUrl)
+		originURLs = append(originURLs, *originURL)
 	}
 
-	if len(originUrls) == 0 {
+	if len(originURLs) == 0 {
 		return nil, errors.New("empty origin list")
 	}
 
-	return originUrls, nil
+	return originURLs, nil
 }

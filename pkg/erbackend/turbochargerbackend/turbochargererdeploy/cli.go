@@ -38,7 +38,7 @@ func CLIEntrypoint() *cobra.Command {
 // (which is essentially a pointer to an immutable file list) in the app configuration.
 func deploy(
 	ctx context.Context,
-	applicationId string,
+	applicationID string,
 	manifestID turbocharger.ObjectID,
 ) error {
 	discoverySvc, err := defaultdiscovery.New(nil)
@@ -51,9 +51,9 @@ func deploy(
 		return err
 	}
 
-	app := erconfig.FindApplication(applicationId, apps)
+	app := erconfig.FindApplication(applicationID, apps)
 	if app == nil {
-		return fmt.Errorf("unknown applicationId: %s", applicationId)
+		return fmt.Errorf("unknown applicationId: %s", applicationID)
 	}
 
 	if app.Backend.Kind != erconfig.BackendKindTurbocharger {

@@ -63,7 +63,7 @@ func (d *ehDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Applicat
 		apps = append(apps, app)
 	}
 
-	sort.Slice(apps, func(i, j int) bool { return apps[i].Id < apps[j].Id })
+	sort.Slice(apps, func(i, j int) bool { return apps[i].ID < apps[j].ID })
 
 	return apps, nil
 }
@@ -78,7 +78,7 @@ func (d *ehDiscovery) UpdateApplication(ctx context.Context, app erconfig.Applic
 }
 
 func (d *ehDiscovery) DeleteApplication(ctx context.Context, app erconfig.Application) error {
-	deleted := erdomain.NewAppDeleted(app.Id, ehevent.MetaSystemUser(time.Now()))
+	deleted := erdomain.NewAppDeleted(app.ID, ehevent.MetaSystemUser(time.Now()))
 
 	_, err := d.tenantCtx.Client.Append(ctx, d.tenantCtx.Stream(stream), []string{
 		ehevent.Serialize(deleted),
@@ -109,9 +109,9 @@ func (d *ehDiscovery) processEvent(ev ehevent.Event) error {
 
 	switch e := ev.(type) {
 	case *erdomain.AppUpdated:
-		d.apps[e.Application.Id] = e.Application
+		d.apps[e.Application.ID] = e.Application
 	case *erdomain.AppDeleted:
-		delete(d.apps, e.Id)
+		delete(d.apps, e.ID)
 	default:
 		return ehreader.UnsupportedEventTypeErr(ev)
 	}

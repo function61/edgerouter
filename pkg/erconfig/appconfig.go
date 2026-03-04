@@ -59,13 +59,13 @@ func (f *Frontend) Validate() error {
 }
 
 type Application struct {
-	Id        string     `json:"id"` // ACLs can reference this, so keep stable (i.e. service replicas/restarts should not affect this)
+	ID        string     `json:"id"` // ACLs can reference this, so keep stable (i.e. service replicas/restarts should not affect this)
 	Frontends []Frontend `json:"frontends"`
 	Backend   Backend    `json:"backend"`
 }
 
 func (a *Application) Validate() error {
-	if err := ErrorIfUnset(a.Id == "", "Id"); err != nil {
+	if err := ErrorIfUnset(a.ID == "", "Id"); err != nil {
 		return err
 	}
 
@@ -75,7 +75,7 @@ func (a *Application) Validate() error {
 
 	for _, frontend := range a.Frontends {
 		if err := frontend.Validate(); err != nil {
-			return fmt.Errorf("app %s frontend: %v", a.Id, err)
+			return fmt.Errorf("app %s frontend: %v", a.ID, err)
 		}
 	}
 
@@ -97,7 +97,7 @@ func (a *Application) Validate() error {
 	case BackendKindTurbocharger:
 		return a.Backend.TurbochargerOpts.Validate()
 	default:
-		return fmt.Errorf("app %s backend unkown kind: %s", a.Id, a.Backend.Kind)
+		return fmt.Errorf("app %s backend unkown kind: %s", a.ID, a.Backend.Kind)
 	}
 }
 
@@ -132,7 +132,7 @@ type Backend struct {
 
 type BackendOptsS3StaticWebsite struct {
 	BucketName      string `json:"bucket_name"`
-	RegionId        string `json:"region_id"`
+	RegionID        string `json:"region_id"`
 	DeployedVersion string `json:"deployed_version"`   // can be empty before first deployed version
 	NotFoundPage    string `json:"404_page,omitempty"` // (optional) ex: "404.html", relative to root of deployed site
 }
@@ -140,13 +140,13 @@ type BackendOptsS3StaticWebsite struct {
 func (b *BackendOptsS3StaticWebsite) Validate() error {
 	return FirstError(
 		ErrorIfUnset(b.BucketName == "", "BucketName"),
-		ErrorIfUnset(b.RegionId == "", "RegionId"),
+		ErrorIfUnset(b.RegionID == "", "RegionId"),
 	)
 }
 
 type BackendOptsReverseProxy struct {
 	Origins           []string          `json:"origins"`
-	TlsConfig         *TlsConfig        `json:"tls_config,omitempty"`
+	TLSConfig         *TLSConfig        `json:"tls_config,omitempty"`
 	Caching           bool              `json:"caching,omitempty"`             // turn on response caching?
 	PassHostHeader    bool              `json:"pass_host_header,omitempty"`    // use client-sent Host (=true) or origin's hostname? (=false) https://doc.traefik.io/traefik/routing/services/#pass-host-header
 	IndexDocument     string            `json:"index_document,omitempty"`      // if request path ends in /foo/ ("directory"), rewrite it into /foo/index.html
@@ -160,14 +160,14 @@ func (b *BackendOptsReverseProxy) Validate() error {
 
 type BackendOptsAwsLambda struct {
 	FunctionName         string `json:"function_name"`
-	RegionId             string `json:"region_id"`
+	RegionID             string `json:"region_id"`
 	PayloadFormatVersion string `json:"payload_format_version,omitempty"` // "1.0" (the default) or "2.0". https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html https://www.serverless.com/framework/docs/providers/aws/events/apigateway
 }
 
 func (b *BackendOptsAwsLambda) Validate() error {
 	return FirstError(
 		ErrorIfUnset(b.FunctionName == "", "FunctionName"),
-		ErrorIfUnset(b.RegionId == "", "RegionId"),
+		ErrorIfUnset(b.RegionID == "", "RegionId"),
 	)
 }
 
@@ -184,7 +184,7 @@ func (b *BackendOptsAuthV0) Validate() error {
 }
 
 type BackendOptsAuthSso struct {
-	IdServerUrl       string   `json:"id_server_url,omitempty"`
+	IDServerURL       string   `json:"id_server_url,omitempty"`
 	AllowedUserIds    []string `json:"allowed_user_ids"`
 	Audience          string   `json:"audience"`
 	AuthorizedBackend *Backend `json:"authorized_backend"` // ptr for validation
@@ -217,7 +217,7 @@ func (b *BackendOptsTurbocharger) Validate() error {
 
 func SimpleApplication(id string, frontend Frontend, backend Backend) Application {
 	return Application{
-		Id: id,
+		ID: id,
 		Frontends: []Frontend{
 			frontend,
 		},
@@ -261,23 +261,23 @@ func PathPrefixFrontend(pathPrefix string, options ...FrontendOpt) Frontend {
 	}
 }
 
-func S3Backend(bucketName string, regionId string, deployedVersion string) Backend {
+func S3Backend(bucketName string, regionID string, deployedVersion string) Backend {
 	return Backend{
 		Kind: BackendKindS3StaticWebsite,
 		S3StaticWebsiteOpts: &BackendOptsS3StaticWebsite{
 			BucketName:      bucketName,
-			RegionId:        regionId,
+			RegionID:        regionID,
 			DeployedVersion: deployedVersion,
 		},
 	}
 }
 
-func ReverseProxyBackend(addrs []string, tlsConfig *TlsConfig, passHostHeader bool) Backend {
+func ReverseProxyBackend(addrs []string, tlsConfig *TLSConfig, passHostHeader bool) Backend {
 	return Backend{
 		Kind: BackendKindReverseProxy,
 		ReverseProxyOpts: &BackendOptsReverseProxy{
 			Origins:        addrs,
-			TlsConfig:      tlsConfig,
+			TLSConfig:      tlsConfig,
 			PassHostHeader: passHostHeader,
 		},
 	}
@@ -301,12 +301,12 @@ func TurbochargerBackend(manifestID turbocharger.ObjectID) Backend {
 	}
 }
 
-func LambdaBackend(functionName string, regionId string) Backend {
+func LambdaBackend(functionName string, regionID string) Backend {
 	return Backend{
 		Kind: BackendKindAwsLambda,
 		AwsLambdaOpts: &BackendOptsAwsLambda{
 			FunctionName:         functionName,
-			RegionId:             regionId,
+			RegionID:             regionID,
 			PayloadFormatVersion: "2.0",
 		},
 	}
@@ -335,7 +335,7 @@ func AuthV0Backend(bearerToken string, authorizedBackend Backend) Backend {
 }
 
 func AuthSsoBackend(
-	idServerUrl string,
+	idServerURL string,
 	allowedUserIds []string,
 	audience string,
 	authorizedBackend Backend,
@@ -343,7 +343,7 @@ func AuthSsoBackend(
 	return Backend{
 		Kind: BackendKindAuthSso,
 		AuthSsoOpts: &BackendOptsAuthSso{
-			IdServerUrl:       idServerUrl,
+			IDServerURL:       idServerURL,
 			AllowedUserIds:    allowedUserIds,
 			Audience:          audience,
 			AuthorizedBackend: &authorizedBackend,
@@ -355,7 +355,7 @@ func AuthSsoBackend(
 
 func (a *Application) Describe() string {
 	lines := []string{
-		a.Id,
+		a.ID,
 		"  backend = " + a.Backend.Describe(),
 	}
 
@@ -386,7 +386,7 @@ func (b *Backend) Describe() string {
 	case BackendKindReverseProxy:
 		return string(b.Kind) + ":" + strings.Join(b.ReverseProxyOpts.Origins, ", ")
 	case BackendKindAwsLambda:
-		return string(b.Kind) + ":" + fmt.Sprintf("%s@%s", b.AwsLambdaOpts.FunctionName, b.AwsLambdaOpts.RegionId)
+		return string(b.Kind) + ":" + fmt.Sprintf("%s@%s", b.AwsLambdaOpts.FunctionName, b.AwsLambdaOpts.RegionID)
 	case BackendKindAuthV0:
 		return string(b.Kind) + ":" + fmt.Sprintf("[bearerToken=...] -> %s", b.AuthV0Opts.AuthorizedBackend.Describe())
 	case BackendKindRedirect:
@@ -402,12 +402,12 @@ func (b *Backend) Describe() string {
 	}
 }
 
-type TlsConfig struct {
+type TLSConfig struct {
 	InsecureSkipVerify bool   `json:"insecure_skip_verify,omitempty"`
 	ServerName         string `json:"server_name,omitempty"` // used to verify the hostname on the server cert. also sent via SNI
 }
 
-func (t *TlsConfig) HasMeaningfulContent() bool {
+func (t *TLSConfig) HasMeaningfulContent() bool {
 	if t.InsecureSkipVerify || t.ServerName != "" {
 		return true
 	} else {
@@ -415,7 +415,7 @@ func (t *TlsConfig) HasMeaningfulContent() bool {
 	}
 }
 
-func (t *TlsConfig) SelfOrNilIfNoMeaningfulContent() *TlsConfig {
+func (t *TLSConfig) SelfOrNilIfNoMeaningfulContent() *TLSConfig {
 	if t.HasMeaningfulContent() {
 		return t
 	} else {

@@ -35,9 +35,9 @@ func StorageFromConfig() (*CASPair, error) {
 		// "/bucket" => "bucket"
 		bucketName := strings.TrimLeft(urlParts.Path, "/")
 
-		regionId := urlParts.Host
+		regionID := urlParts.Host
 
-		bucket, err := s3facade.Bucket(bucketName, nil, regionId)
+		bucket, err := s3facade.Bucket(bucketName, nil, regionID)
 		if err != nil {
 			return nil, err
 		}

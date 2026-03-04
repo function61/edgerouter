@@ -113,7 +113,7 @@ func (d *s3discovery) UpdateApplication(ctx context.Context, app erconfig.Applic
 
 	if _, err := d.bucket.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket:      d.bucket.Name,
-		Key:         aws.String(discoveryFilePath(app.Id)),
+		Key:         aws.String(discoveryFilePath(app.ID)),
 		ContentType: aws.String("application/json"),
 		Body:        bytes.NewReader(buf),
 	}); err != nil {
@@ -126,7 +126,7 @@ func (d *s3discovery) UpdateApplication(ctx context.Context, app erconfig.Applic
 func (d *s3discovery) DeleteApplication(ctx context.Context, app erconfig.Application) error {
 	if _, err := d.bucket.S3.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: d.bucket.Name,
-		Key:    aws.String(discoveryFilePath(app.Id)),
+		Key:    aws.String(discoveryFilePath(app.ID)),
 	}); err != nil {
 		return fmt.Errorf("s3discovery: DeleteObject: %v", err)
 	}
@@ -134,6 +134,6 @@ func (d *s3discovery) DeleteApplication(ctx context.Context, app erconfig.Applic
 	return nil
 }
 
-func discoveryFilePath(appId string) string {
-	return fmt.Sprintf("discovery/%s.json", appId)
+func discoveryFilePath(appID string) string {
+	return fmt.Sprintf("discovery/%s.json", appID)
 }

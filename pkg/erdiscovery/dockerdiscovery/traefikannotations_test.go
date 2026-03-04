@@ -189,10 +189,10 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
 			app, err := traefikAnnotationsToApp(tc.input)
 			assert.Ok(t, err)
 
-			appJson, err := json.MarshalIndent(app, "", "  ")
+			appJSON, err := json.MarshalIndent(app, "", "  ")
 			assert.Ok(t, err)
 
-			assert.EqualString(t, string(appJson), tc.expectedOutput)
+			assert.EqualString(t, string(appJSON), tc.expectedOutput)
 		})
 	}
 }

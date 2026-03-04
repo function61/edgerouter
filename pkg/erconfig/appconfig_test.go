@@ -7,14 +7,14 @@ import (
 )
 
 func TestSelfOrNilIfNoMeaningfulContent(t *testing.T) {
-	emptyConf := TlsConfig{}
+	emptyConf := TLSConfig{}
 
 	assert.Assert(t, !emptyConf.HasMeaningfulContent())
 
 	assert.Assert(t, emptyConf.SelfOrNilIfNoMeaningfulContent() == nil)
 
-	nonEmptyConf1 := TlsConfig{InsecureSkipVerify: true}
-	nonEmptyConf2 := TlsConfig{ServerName: "foobar"}
+	nonEmptyConf1 := TLSConfig{InsecureSkipVerify: true}
+	nonEmptyConf2 := TLSConfig{ServerName: "foobar"}
 
 	assert.Assert(t, nonEmptyConf1.SelfOrNilIfNoMeaningfulContent() != nil)
 	assert.Assert(t, nonEmptyConf1.HasMeaningfulContent())

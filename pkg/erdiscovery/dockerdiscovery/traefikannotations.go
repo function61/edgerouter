@@ -55,9 +55,10 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 
 	port := service.Labels["traefik.port"]
 	if port == "" {
-		if scheme == "http" {
+		switch scheme {
+		case "http":
 			port = "80"
-		} else if scheme == "https" {
+		case "https":
 			port = "443"
 		}
 	}
@@ -96,7 +97,7 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 		return nil, nil
 	}
 
-	tlsConfig := &erconfig.TlsConfig{
+	tlsConfig := &erconfig.TLSConfig{
 		InsecureSkipVerify: insecureSkipVerify,
 		ServerName:         tlsServerName,
 	}

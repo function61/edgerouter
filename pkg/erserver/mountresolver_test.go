@@ -41,15 +41,15 @@ func TestMountResolver(t *testing.T) {
 
 	assert.Assert(t, resolveMount("notfound.net", "/", matchers) == nil)
 
-	assert.EqualString(t, resolveMount("example.com", "/", matchers).App.Id, "examplecom-app")
-	assert.EqualString(t, resolveMount("example.com", "/lollotilol", matchers).App.Id, "examplecom-app")
+	assert.EqualString(t, resolveMount("example.com", "/", matchers).App.ID, "examplecom-app")
+	assert.EqualString(t, resolveMount("example.com", "/lollotilol", matchers).App.ID, "examplecom-app")
 
-	assert.Assert(t, resolveMount("docs.example.com", "/", matchers).App.Id == "examplecom-docs-root")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo", matchers).App.Id, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo/", matchers).App.Id, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo/stuff", matchers).App.Id, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foobar", matchers).App.Id, "examplecom-docs-root")
-	assert.EqualString(t, resolveMount("docs.example.com", "/bar", matchers).App.Id, "examplecom-docs-bar")
-	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/acme-challenge/TOKEN", matchers).App.Id, "acme-challenge")
-	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/test", matchers).App.Id, "well-known")
+	assert.Assert(t, resolveMount("docs.example.com", "/", matchers).App.ID == "examplecom-docs-root")
+	assert.EqualString(t, resolveMount("docs.example.com", "/foo", matchers).App.ID, "examplecom-docs-foo")
+	assert.EqualString(t, resolveMount("docs.example.com", "/foo/", matchers).App.ID, "examplecom-docs-foo")
+	assert.EqualString(t, resolveMount("docs.example.com", "/foo/stuff", matchers).App.ID, "examplecom-docs-foo")
+	assert.EqualString(t, resolveMount("docs.example.com", "/foobar", matchers).App.ID, "examplecom-docs-root")
+	assert.EqualString(t, resolveMount("docs.example.com", "/bar", matchers).App.ID, "examplecom-docs-bar")
+	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/acme-challenge/TOKEN", matchers).App.ID, "acme-challenge")
+	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/test", matchers).App.ID, "well-known")
 }

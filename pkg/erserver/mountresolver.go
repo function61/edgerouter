@@ -61,9 +61,9 @@ func appConfigToHandlersAndMatchers(
 	fem := newFrontendMatchers(apps, timestamp)
 
 	for _, app := range apps {
-		backend, err := makeBackend(app.Id, app.Backend, currentConfig, parentLogger)
+		backend, err := makeBackend(app.ID, app.Backend, currentConfig, parentLogger)
 		if err != nil {
-			return nil, fmt.Errorf("makeBackend: %s: %w", app.Id, err)
+			return nil, fmt.Errorf("makeBackend: %s: %w", app.ID, err)
 		}
 
 		for _, frontend := range app.Frontends {

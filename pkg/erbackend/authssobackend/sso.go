@@ -14,12 +14,12 @@ func New(
 	opts erconfig.BackendOptsAuthSso,
 	authorizedBackend http.Handler,
 ) (http.Handler, error) {
-	serverUrl := opts.IdServerUrl
-	if serverUrl == "" {
-		serverUrl = idclient.Function61
+	serverURL := opts.IDServerURL
+	if serverURL == "" {
+		serverURL = idclient.Function61
 	}
 
-	idpClient := idclient.New(serverUrl)
+	idpClient := idclient.New(serverURL)
 
 	router := mux.NewRouter()
 

@@ -23,22 +23,22 @@ import (
 )
 
 type uploadJob struct {
-	applicationId  string
+	applicationID  string
 	deploymentSpec deploymentSpec
 	bucket         *s3facade.BucketContext
 }
 
 // atomically deploys a new version of a site to a S3 bucket, then updates service
 // discovery to point to the new deployed version
-func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, deployVersion string, discoverySvc erdiscovery.ReaderWriter) error {
+func Deploy(ctx context.Context, tarArchive io.Reader, applicationID string, deployVersion string, discoverySvc erdiscovery.ReaderWriter) error {
 	apps, err := discoverySvc.ReadApplications(ctx)
 	if err != nil {
 		return err
 	}
 
-	app := erconfig.FindApplication(applicationId, apps)
+	app := erconfig.FindApplication(applicationID, apps)
 	if app == nil {
-		return fmt.Errorf("unknown applicationId: %s", applicationId)
+		return fmt.Errorf("unknown applicationId: %s", applicationID)
 	}
 
 	if app.Backend.Kind != erconfig.BackendKindS3StaticWebsite {
@@ -50,13 +50,13 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, dep
 	bucket, err := s3facade.Bucket(
 		s3StaticWebsiteOpts.BucketName,
 		s3facade.CredentialsFromEnv,
-		s3StaticWebsiteOpts.RegionId)
+		s3StaticWebsiteOpts.RegionID)
 	if err != nil {
 		return err
 	}
 
 	upload := &uploadJob{
-		applicationId: app.Id,
+		applicationID: app.ID,
 		deploymentSpec: deploymentSpec{
 			Version:    deployVersion,
 			DeployedAt: time.Now(),
@@ -72,7 +72,7 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationId string, dep
 	// to all edge routers
 	app.Backend = erconfig.S3Backend(
 		s3StaticWebsiteOpts.BucketName,
-		s3StaticWebsiteOpts.RegionId,
+		s3StaticWebsiteOpts.RegionID,
 		upload.deploymentSpec.Version)
 
 	return discoverySvc.UpdateApplication(ctx, *app)
@@ -137,16 +137,16 @@ func uploadAllFiles(ctx context.Context, tarArchive io.Reader, upload *uploadJob
 	}
 
 	// deployment spec
-	deploymentSpecJson, err := json.MarshalIndent(&upload.deploymentSpec, "", "  ")
+	deploymentSpecJSON, err := json.MarshalIndent(&upload.deploymentSpec, "", "  ")
 	if err != nil {
 		return err
 	}
 
 	workItems <- &s3.PutObjectInput{
 		Bucket:      upload.bucket.Name,
-		Key:         aws.String(bucketPrefix(upload.applicationId, upload.deploymentSpec.Version) + ".deployment.json"),
+		Key:         aws.String(bucketPrefix(upload.applicationID, upload.deploymentSpec.Version) + ".deployment.json"),
 		ContentType: aws.String("application/json"),
-		Body:        bytes.NewReader(deploymentSpecJson),
+		Body:        bytes.NewReader(deploymentSpecJSON),
 	}
 
 	closeOnceAndWait()
@@ -170,7 +170,7 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	ext := filepath.Ext(filePath)
 
 	// looks like "joonasfi-blog/versionid/"
-	pathPrefix := bucketPrefix(upload.applicationId, upload.deploymentSpec.Version) + "/"
+	pathPrefix := bucketPrefix(upload.applicationID, upload.deploymentSpec.Version) + "/"
 
 	// sometimes the entries start with a dot, and we would end up with
 	// "sites/APP_ID/VERSION/./readme.md" unless we normalize this
@@ -207,6 +207,6 @@ func uploadWorker(ctx context.Context, s3Client *s3.S3, objects <-chan *s3.PutOb
 }
 
 // looks like "sites/joonasfi-blog/versionid"
-func bucketPrefix(applicationId string, deployVersion string) string {
-	return "sites/" + applicationId + "/" + deployVersion
+func bucketPrefix(applicationID string, deployVersion string) string {
+	return "sites/" + applicationID + "/" + deployVersion
 }

@@ -16,9 +16,9 @@ import (
 	"github.com/function61/gokit/ezhttp"
 )
 
-func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, error) {
+func New(appID string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, error) {
 	if opts.DeployedVersion == "" {
-		errMsg := fmt.Sprintf("no deployed version for %s", appId)
+		errMsg := fmt.Sprintf("no deployed version for %s", appID)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, errMsg, http.StatusNotFound)
 		}), nil
@@ -27,13 +27,13 @@ func New(appId string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, 
 	// this is not much more than sugar on top of the much more powerful reverseproxybackend
 
 	// bucketPrefix looks like "sites/joonasfi-blog/versionid"
-	origin := "https://s3." + opts.RegionId + ".amazonaws.com/" + opts.BucketName + "/" + bucketPrefix(appId, opts.DeployedVersion)
+	origin := "https://s3." + opts.RegionID + ".amazonaws.com/" + opts.BucketName + "/" + bucketPrefix(appID, opts.DeployedVersion)
 
 	cacheNotFound := &cache404{}
 
 	// FIXME: it uses appId as cache key, thus we synthetize new cache each time a
 	//        new version is deployed
-	return reverseproxybackend.NewWithModifyResponse(appId+"-"+opts.DeployedVersion, erconfig.BackendOptsReverseProxy{
+	return reverseproxybackend.NewWithModifyResponse(appID+"-"+opts.DeployedVersion, erconfig.BackendOptsReverseProxy{
 		// "/favicon.ico" =>
 		//   https://s3.us-east-1.amazonaws.com/myorg-websites/sites/joonasfi-blog/versionid/favicon.ico
 		Origins: []string{origin},

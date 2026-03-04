@@ -25,7 +25,7 @@ type Service struct {
 }
 
 type ServiceInstance struct {
-	DockerTaskId string
+	DockerTaskID string
 	NodeID       string
 	NodeHostname string
 	IPv4         string
@@ -36,7 +36,7 @@ func HasConfigInEnv() bool {
 }
 
 func New() (erdiscovery.Reader, error) {
-	dockerUrl, err := envvar.Required("DOCKER_URL")
+	dockerURL, err := envvar.Required("DOCKER_URL")
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +52,8 @@ func New() (erdiscovery.Reader, error) {
 		return "bridge"
 	}()
 
-	dockerClient, dockerUrlTransformed, err := udocker.Client(
-		dockerUrl,
+	dockerClient, dockerURLTransformed, err := udocker.Client(
+		dockerURL,
 		udocker.ClientCertificateFromEnv,
 		true)
 	if err != nil {
@@ -61,28 +61,28 @@ func New() (erdiscovery.Reader, error) {
 	}
 
 	// for unix sockets we need to fake "http://localhost"
-	dockerUrl = dockerUrlTransformed
+	dockerURL = dockerURLTransformed
 
 	return &dockerDiscovery{
 		dockerNetworkName: dockerNetworkName,
-		dockerUrl:         dockerUrl,
+		dockerURL:         dockerURL,
 		dockerClient:      dockerClient,
 	}, nil
 }
 
 type dockerDiscovery struct {
 	dockerNetworkName string
-	dockerUrl         string
+	dockerURL         string
 	dockerClient      *http.Client
 }
 
 func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
-	swarmServices, err := discoverSwarmServices(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient)
+	swarmServices, err := discoverSwarmServices(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient)
 	if err != nil {
 		return nil, err
 	}
 
-	bareContainers, err := discoverDockerContainers(ctx, s.dockerUrl, s.dockerNetworkName, s.dockerClient, swarmServices)
+	bareContainers, err := discoverDockerContainers(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, swarmServices)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +109,13 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 	return apps, nil
 }
 
-func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName string, dockerClient *http.Client) ([]Service, error) {
+func discoverSwarmServices(ctx context.Context, dockerURL string, networkName string, dockerClient *http.Client) ([]Service, error) {
 	services := []Service{}
 
 	dockerTasks := []udocker.Task{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerUrl+udocker.TasksEndpoint,
+		dockerURL+udocker.TasksEndpoint,
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJson(&dockerTasks, true),
 	); err != nil {
@@ -125,7 +125,7 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 	dockerServices := []udocker.Service{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerUrl+udocker.ServicesEndpoint,
+		dockerURL+udocker.ServicesEndpoint,
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJson(&dockerServices, true),
 	); err != nil {
@@ -135,7 +135,7 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 	dockerNodes := []udocker.Node{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerUrl+udocker.NodesEndpoint,
+		dockerURL+udocker.NodesEndpoint,
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJson(&dockerNodes, true),
 	); err != nil {
@@ -150,18 +150,18 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 				continue
 			}
 
-			var firstIp net.IP = nil
+			var firstIP net.IP = nil
 			attachment := networkAttachmentForNetworkName(task, networkName)
 			if attachment != nil {
 				// for some reason Docker insists on stuffing the CIDR after the IP
 				var err error
-				firstIp, _, err = net.ParseCIDR(attachment.Addresses[0])
+				firstIP, _, err = net.ParseCIDR(attachment.Addresses[0])
 				if err != nil {
 					return nil, err
 				}
 			}
 
-			if firstIp == nil {
+			if firstIP == nil {
 				continue
 			}
 
@@ -171,16 +171,16 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 				continue
 			}
 
-			node := nodeById(task.NodeID, dockerNodes)
+			node := nodeByID(task.NodeID, dockerNodes)
 			if node == nil {
 				return nil, fmt.Errorf("node %s not found for task %s", task.NodeID, task.ID)
 			}
 
 			instances = append(instances, ServiceInstance{
-				DockerTaskId: task.ID,
+				DockerTaskID: task.ID,
 				NodeID:       node.ID,
 				NodeHostname: node.Description.Hostname,
-				IPv4:         firstIp.String(),
+				IPv4:         firstIP.String(),
 			})
 		}
 
@@ -205,7 +205,7 @@ func discoverSwarmServices(ctx context.Context, dockerUrl string, networkName st
 // bare containers that are not necessarily a result of a Swarm service
 func discoverDockerContainers(
 	ctx context.Context,
-	dockerUrl string,
+	dockerURL string,
 	dockerNetworkName string,
 	dockerClient *http.Client,
 	alreadyDiscoveredFromSwarm []Service,
@@ -222,7 +222,7 @@ func discoverDockerContainers(
 
 		if gwbridgeNetworkInspectOnceCached == nil {
 			var err error
-			gwbridgeNetworkInspectOnceCached, err = networkInspect(ctx, dockerNetworkName, dockerUrl, dockerClient)
+			gwbridgeNetworkInspectOnceCached, err = networkInspect(ctx, dockerNetworkName, dockerURL, dockerClient)
 			if err != nil {
 				gwbridgeNetworkInspectOnceCached = nil // ensure nil on error
 				return nil, err
@@ -235,7 +235,7 @@ func discoverDockerContainers(
 	containers := []udocker.ContainerListItem{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerUrl+udocker.ListContainersEndpoint,
+		dockerURL+udocker.ListContainersEndpoint,
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJson(&containers, true),
 	); err != nil {
@@ -337,7 +337,7 @@ func discoverDockerContainers(
 			Labels: container.Labels,
 			Instances: []ServiceInstance{
 				{
-					DockerTaskId: container.Id,
+					DockerTaskID: container.Id,
 					NodeID:       "dummy", // not applicable in bare container context
 					NodeHostname: "dummy",
 					IPv4:         ipAddress,
@@ -352,13 +352,13 @@ func discoverDockerContainers(
 func networkInspect(
 	ctx context.Context,
 	dockerNetworkName string,
-	dockerUrl string,
+	dockerURL string,
 	dockerClient *http.Client,
 ) (*DockerNetworkInspectOutput, error) {
 	output := &DockerNetworkInspectOutput{}
 
 	_, err := ezhttp.Get(
-		ctx, dockerUrl+networkInspectEndpoint(dockerNetworkName),
+		ctx, dockerURL+networkInspectEndpoint(dockerNetworkName),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJson(output, true))
 
@@ -375,7 +375,7 @@ func networkAttachmentForNetworkName(task udocker.Task, networkName string) *udo
 	return nil
 }
 
-func nodeById(id string, nodes []udocker.Node) *udocker.Node {
+func nodeByID(id string, nodes []udocker.Node) *udocker.Node {
 	for _, node := range nodes {
 		if node.ID == id {
 			return &node
@@ -393,8 +393,8 @@ type DockerNetworkInspectOutput struct {
 	} `json:"Containers"`
 }
 
-func networkInspectEndpoint(networkId string) string {
-	return fmt.Sprintf("/v1.24/networks/%s", networkId)
+func networkInspectEndpoint(networkID string) string {
+	return fmt.Sprintf("/v1.24/networks/%s", networkID)
 }
 
 func coalesce(items ...string) string {

@@ -1,6 +1,7 @@
 package erserver
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,6 +54,7 @@ func newFrontendMatchers(apps []erconfig.Application, timestamp time.Time) *fron
 
 // transforms config (erconfig.Application) to concrerete instances (http.Handler) of backend for each app
 func appConfigToHandlersAndMatchers(
+	ctx context.Context,
 	apps []erconfig.Application,
 	currentConfig erconfig.CurrentConfigAccessor,
 	timestamp time.Time,
@@ -61,7 +63,7 @@ func appConfigToHandlersAndMatchers(
 	fem := newFrontendMatchers(apps, timestamp)
 
 	for _, app := range apps {
-		backend, err := makeBackend(app.ID, app.Backend, currentConfig, parentLogger)
+		backend, err := makeBackend(ctx, app.ID, app.Backend, currentConfig, parentLogger)
 		if err != nil {
 			return nil, fmt.Errorf("makeBackend: %s: %w", app.ID, err)
 		}

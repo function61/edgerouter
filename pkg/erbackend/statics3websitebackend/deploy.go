@@ -8,24 +8,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"path"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/aws/s3facade"
 	"github.com/function61/gokit/mime"
 )
 
 type uploadJob struct {
 	applicationID  string
 	deploymentSpec deploymentSpec
-	bucket         *s3facade.BucketContext
+	bucketName     string
+	s3Client       *s3.Client
 }
 
 // atomically deploys a new version of a site to a S3 bucket, then updates service
@@ -47,10 +48,7 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationID string, dep
 
 	s3StaticWebsiteOpts := app.Backend.S3StaticWebsiteOpts
 
-	bucket, err := s3facade.Bucket(
-		s3StaticWebsiteOpts.BucketName,
-		s3facade.CredentialsFromEnv,
-		s3StaticWebsiteOpts.RegionID)
+	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(s3StaticWebsiteOpts.RegionID))
 	if err != nil {
 		return err
 	}
@@ -61,7 +59,8 @@ func Deploy(ctx context.Context, tarArchive io.Reader, applicationID string, dep
 			Version:    deployVersion,
 			DeployedAt: time.Now(),
 		},
-		bucket: bucket,
+		bucketName: s3StaticWebsiteOpts.BucketName,
+		s3Client:   s3.NewFromConfig(awsConfig),
 	}
 
 	if err := uploadAllFiles(ctx, tarArchive, upload); err != nil {
@@ -95,7 +94,7 @@ func uploadAllFiles(ctx context.Context, tarArchive io.Reader, upload *uploadJob
 	wg.Add(workerCount)
 
 	for i := 0; i < workerCount; i++ {
-		go uploadWorker(ctx, upload.bucket.S3, workItems, workError, wg)
+		go uploadWorker(ctx, upload.s3Client, workItems, workError, wg)
 	}
 
 	// cancel and wait for workers exit in all exit paths
@@ -143,7 +142,7 @@ func uploadAllFiles(ctx context.Context, tarArchive io.Reader, upload *uploadJob
 	}
 
 	workItems <- &s3.PutObjectInput{
-		Bucket:      upload.bucket.Name,
+		Bucket:      aws.String(upload.bucketName),
 		Key:         aws.String(bucketPrefix(upload.applicationID, upload.deploymentSpec.Version) + ".deployment.json"),
 		ContentType: aws.String("application/json"),
 		Body:        bytes.NewReader(deploymentSpecJSON),
@@ -177,7 +176,7 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	fullPath := path.Clean(pathPrefix + filePath)
 
 	return &s3.PutObjectInput{
-		Bucket:       upload.bucket.Name,
+		Bucket:       aws.String(upload.bucketName),
 		Key:          aws.String(fullPath),
 		ContentType:  aws.String(mime.TypeByExtension(ext, mime.OctetStream)),
 		CacheControl: aws.String("max-age=31536000"), // 1 year (= "infinite caching"), because this versioned URL will never change
@@ -185,16 +184,16 @@ func createUploadRequest(filePath string, content io.Reader, upload *uploadJob) 
 	}, nil
 }
 
-func uploadWorker(ctx context.Context, s3Client *s3.S3, objects <-chan *s3.PutObjectInput, workError chan<- error, wg *sync.WaitGroup) {
+func uploadWorker(ctx context.Context, s3Client *s3.Client, objects <-chan *s3.PutObjectInput, workError chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	uploadOneObject := func(object *s3.PutObjectInput) error {
 		ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 		defer cancel()
 
-		log.Printf("uploading %s", *object.Key)
+		slog.Info("uploading", "key", *object.Key)
 
-		_, err := s3Client.PutObjectWithContext(ctx, object)
+		_, err := s3Client.PutObject(ctx, object)
 		return err
 	}
 

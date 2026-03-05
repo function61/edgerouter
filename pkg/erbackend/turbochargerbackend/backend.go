@@ -3,6 +3,7 @@
 package turbochargerbackend
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strings"
@@ -13,8 +14,8 @@ import (
 
 // doesn't do much more than binds a static manifest ID to the backend. in case the manifest changes
 // (a different version of a website gets deployed), that's an Edgerouter-level concern and it will make a new backend instance.
-func New(manifestID turbocharger.ObjectID, logger *log.Logger) (http.Handler, error) {
-	manifestHandler, err := turbocharger.GetManifestHandlerSingleton()
+func New(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logger) (http.Handler, error) {
+	manifestHandler, err := turbocharger.GetManifestHandlerSingleton(ctx)
 	if err != nil {
 		return nil, err
 	}

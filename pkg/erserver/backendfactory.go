@@ -2,6 +2,7 @@ package erserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 var bendCache = newBackendCache()
 
 func makeBackend(
+	ctx context.Context,
 	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
@@ -36,7 +38,7 @@ func makeBackend(
 	// only make new instance if config JSON has changed for this app ID
 	cached := bendCache.Find(appID, configDigest)
 	if cached == nil {
-		backend, err := makeBackendInternal(appID, backendConf, currentConfig, parentLogger)
+		backend, err := makeBackendInternal(ctx, appID, backendConf, currentConfig, parentLogger)
 		if err != nil {
 			return nil, err
 		}
@@ -53,6 +55,7 @@ func makeBackend(
 
 // called when actually making a new backend, instead of using a cached one
 func makeBackendInternal(
+	ctx context.Context,
 	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
@@ -66,17 +69,18 @@ func makeBackendInternal(
 	case erconfig.BackendKindS3StaticWebsite:
 		return statics3websitebackend.New(appID, *backendConf.S3StaticWebsiteOpts)
 	case erconfig.BackendKindReverseProxy:
-		return reverseproxybackend.New(appID, *backendConf.ReverseProxyOpts, appSpecificLogger())
+		return reverseproxybackend.New(ctx, appID, *backendConf.ReverseProxyOpts, appSpecificLogger())
 	case erconfig.BackendKindAwsLambda:
-		return lambdabackend.New(*backendConf.AwsLambdaOpts, appSpecificLogger())
+		return lambdabackend.New(ctx, *backendConf.AwsLambdaOpts, appSpecificLogger())
 	case erconfig.BackendKindRedirect:
 		return redirectbackend.New(*backendConf.RedirectOpts), nil
 	case erconfig.BackendKindTurbocharger:
-		return turbochargerbackend.New(backendConf.TurbochargerOpts.Manifest, appSpecificLogger())
+		return turbochargerbackend.New(ctx, backendConf.TurbochargerOpts.Manifest, appSpecificLogger())
 	case erconfig.BackendKindEdgerouterAdmin:
 		return edgerouteradminbackend.New(currentConfig)
 	case erconfig.BackendKindAuthV0:
 		authorizedBackend, err := makeBackendInternal(
+			ctx,
 			appID,
 			*backendConf.AuthV0Opts.AuthorizedBackend,
 			currentConfig,
@@ -88,6 +92,7 @@ func makeBackendInternal(
 		return authv0backend.New(*backendConf.AuthV0Opts, authorizedBackend), nil
 	case erconfig.BackendKindAuthSso:
 		authorizedBackend, err := makeBackendInternal(
+			ctx,
 			appID,
 			*backendConf.AuthSsoOpts.AuthorizedBackend,
 			currentConfig,

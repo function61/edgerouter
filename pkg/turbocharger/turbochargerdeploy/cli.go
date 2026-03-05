@@ -68,7 +68,7 @@ func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger 
 		return errors.New("project cannot be empty")
 	}
 
-	storages, err := turbocharger.StorageFromConfig()
+	storages, err := turbocharger.StorageFromConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger 
 }
 
 func downloadFromStore(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logger) error {
-	storages, err := turbocharger.StorageFromConfig()
+	storages, err := turbocharger.StorageFromConfig(ctx)
 	if err != nil {
 		return err
 	}

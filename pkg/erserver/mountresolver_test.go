@@ -1,6 +1,7 @@
 package erserver
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func TestMountResolver(t *testing.T) {
 			erconfig.RedirectBackend("http://example.net/5")),
 	}
 
-	matchers, err := appConfigToHandlersAndMatchers(apps, nil, time.Date(2021, 6, 30, 15, 17, 0, 0, time.UTC), nil)
+	matchers, err := appConfigToHandlersAndMatchers(context.Background(), apps, nil, time.Date(2021, 6, 30, 15, 17, 0, 0, time.UTC), nil)
 	assert.Ok(t, err)
 
 	assert.Assert(t, resolveMount("notfound.net", "/", matchers) == nil)

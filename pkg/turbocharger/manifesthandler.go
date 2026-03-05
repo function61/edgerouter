@@ -38,8 +38,8 @@ type ManifestHandler struct {
 	logl *logex.Leveled
 }
 
-func NewManifestHandlerAndStorages() (*ManifestHandler, error) {
-	storages, err := StorageFromConfig()
+func NewManifestHandlerAndStorages(ctx context.Context) (*ManifestHandler, error) {
+	storages, err := StorageFromConfig(ctx)
 	if err != nil {
 		return nil, err
 	}

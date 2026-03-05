@@ -95,7 +95,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 		return err
 	}
 
-	discovery, err := configureDiscovery(logger)
+	discovery, err := configureDiscovery(ctx, logger)
 	if err != nil {
 		return fmt.Errorf("configureDiscovery: %w", err)
 	}
@@ -293,7 +293,7 @@ func syncAppsFromDiscovery(
 
 	logl.Info.Printf("discovered %d app(s)", len(apps))
 
-	matchers, err := appConfigToHandlersAndMatchers(apps, currentConfig, time.Now(), parentLogger)
+	matchers, err := appConfigToHandlersAndMatchers(ctx, apps, currentConfig, time.Now(), parentLogger)
 	if err != nil {
 		return nil, fmt.Errorf("appConfigToHandlersAndMatchers: %w", err)
 	}
@@ -301,11 +301,11 @@ func syncAppsFromDiscovery(
 	return matchers, nil
 }
 
-func configureDiscovery(logger *log.Logger) (erdiscovery.Reader, error) {
+func configureDiscovery(ctx context.Context, logger *log.Logger) (erdiscovery.Reader, error) {
 	readers := []erdiscovery.Reader{}
 
 	if s3discovery.HasConfigInEnv() {
-		s3Discovery, err := s3discovery.New()
+		s3Discovery, err := s3discovery.New(ctx)
 		if err != nil {
 			return nil, err
 		}

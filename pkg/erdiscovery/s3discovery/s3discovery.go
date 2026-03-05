@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/aws/s3facade"
 	"github.com/function61/gokit/envvar"
 )
 
@@ -23,12 +23,13 @@ func HasConfigInEnv() bool {
 }
 
 type s3discovery struct {
-	bucket         *s3facade.BucketContext
+	bucketName     string
+	s3Client       *s3.Client
 	cachedRead     []erconfig.Application
 	cachedReadHash []byte
 }
 
-func New() (erdiscovery.ReaderWriter, error) {
+func New(ctx context.Context) (erdiscovery.ReaderWriter, error) {
 	bucketName, err := envvar.Required("S3_DISCOVERY_BUCKET")
 	if err != nil {
 		return nil, err
@@ -39,23 +40,21 @@ func New() (erdiscovery.ReaderWriter, error) {
 		return nil, err
 	}
 
-	bucket, err := s3facade.Bucket(
-		bucketName,
-		s3facade.CredentialsFromEnv,
-		region)
+	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}
 
 	return &s3discovery{
-		bucket:     bucket,
+		bucketName: bucketName,
+		s3Client:   s3.NewFromConfig(awsConfig),
 		cachedRead: []erconfig.Application{},
 	}, nil
 }
 
 func (d *s3discovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
-	listResponse, err := d.bucket.S3.ListObjectsWithContext(ctx, &s3.ListObjectsInput{
-		Bucket: d.bucket.Name,
+	listResponse, err := d.s3Client.ListObjects(ctx, &s3.ListObjectsInput{
+		Bucket: aws.String(d.bucketName),
 		Prefix: aws.String("discovery/"),
 	})
 	if err != nil {
@@ -80,8 +79,8 @@ func (d *s3discovery) ReadApplications(ctx context.Context) ([]erconfig.Applicat
 	apps := []erconfig.Application{}
 
 	for _, object := range listResponse.Contents {
-		objectResponse, err := d.bucket.S3.GetObjectWithContext(ctx, &s3.GetObjectInput{
-			Bucket: d.bucket.Name,
+		objectResponse, err := d.s3Client.GetObject(ctx, &s3.GetObjectInput{
+			Bucket: aws.String(d.bucketName),
 			Key:    object.Key,
 		})
 		if err != nil {
@@ -92,7 +91,11 @@ func (d *s3discovery) ReadApplications(ctx context.Context) ([]erconfig.Applicat
 
 		decoder := json.NewDecoder(objectResponse.Body)
 		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&app); err != nil {
+		if err := func() error {
+			defer objectResponse.Body.Close()
+
+			return decoder.Decode(&app)
+		}(); err != nil {
 			return nil, err
 		}
 
@@ -111,8 +114,8 @@ func (d *s3discovery) UpdateApplication(ctx context.Context, app erconfig.Applic
 		return err
 	}
 
-	if _, err := d.bucket.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
-		Bucket:      d.bucket.Name,
+	if _, err := d.s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(d.bucketName),
 		Key:         aws.String(discoveryFilePath(app.ID)),
 		ContentType: aws.String("application/json"),
 		Body:        bytes.NewReader(buf),
@@ -124,8 +127,8 @@ func (d *s3discovery) UpdateApplication(ctx context.Context, app erconfig.Applic
 }
 
 func (d *s3discovery) DeleteApplication(ctx context.Context, app erconfig.Application) error {
-	if _, err := d.bucket.S3.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
-		Bucket: d.bucket.Name,
+	if _, err := d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(d.bucketName),
 		Key:    aws.String(discoveryFilePath(app.ID)),
 	}); err != nil {
 		return fmt.Errorf("s3discovery: DeleteObject: %v", err)

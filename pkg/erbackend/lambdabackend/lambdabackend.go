@@ -3,6 +3,7 @@ package lambdabackend
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,27 +15,21 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/turbocharger"
-	"github.com/function61/gokit/aws/s3facade"
 )
 
 type lambdaBackend struct {
 	functionName string
-	lambda       *lambda.Lambda
+	lambda       *lambda.Client
 	isPayloadV2  bool // https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
 }
 
-func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, error) {
-	creds, err := s3facade.CredentialsFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	awsSession, err := session.NewSession()
+func New(ctx context.Context, opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, error) {
+	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(opts.RegionID))
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +41,11 @@ func New(opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, 
 
 	handler := &lambdaBackend{
 		functionName: opts.FunctionName,
-		lambda: lambda.New(
-			awsSession,
-			aws.NewConfig().WithCredentials(creds).WithRegion(opts.RegionID)),
-		isPayloadV2: isPayloadV2,
+		lambda:       lambda.NewFromConfig(awsConfig),
+		isPayloadV2:  isPayloadV2,
 	}
 
-	return turbocharger.WrapWithMiddlewareIfConfigAvailable(handler, logger)
+	return turbocharger.WrapWithMiddlewareIfConfigAvailable(ctx, handler, logger)
 }
 
 func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +111,7 @@ func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
+	lambdaResponse, err := b.lambda.Invoke(r.Context(), &lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
 		Payload:      proxyRequestJSON,
 	})
@@ -176,7 +169,7 @@ func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lambdaResponse, err := b.lambda.InvokeWithContext(r.Context(), &lambda.InvokeInput{
+	lambdaResponse, err := b.lambda.Invoke(r.Context(), &lambda.InvokeInput{
 		FunctionName: aws.String(b.functionName),
 		Payload:      proxyRequestJSON,
 	})

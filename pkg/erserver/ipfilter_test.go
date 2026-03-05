@@ -2,11 +2,11 @@ package erserver
 
 import (
 	"fmt"
+	"net/netip"
 	"strings"
 	"testing"
 
 	"github.com/function61/gokit/assert"
-	"inet.af/netaddr"
 )
 
 func TestNoRulesAllAllowed(t *testing.T) {
@@ -22,9 +22,12 @@ func TestInvalidIP(t *testing.T) {
 	assert.Assert(t, allowed)
 	assert.Assert(t, errStr == "")
 
-	allowed, errStr = ipAllowed(invalidIP, "anyapp", []ipRule{allowAllApps(netaddr.MustParseIPPrefix("0.0.0.0/0"))})
+	allIpsPrefix, err := netip.ParsePrefix("0.0.0.0/0")
+	assert.Ok(t, err)
+
+	allowed, errStr = ipAllowed(invalidIP, "anyapp", []ipRule{allowAllApps(allIpsPrefix)})
 	assert.Assert(t, !allowed)
-	assert.EqualString(t, errStr, `invalid IP: ParseIP("500.400.300.200.100"): IPv4 field has value >255`)
+	assert.EqualString(t, errStr, `invalid IP: ParseAddr("500.400.300.200.100"): IPv4 field has value >255`)
 }
 
 func TestIpFilter(t *testing.T) {
@@ -41,8 +44,8 @@ allow_specified {
 	assert.Ok(t, err)
 
 	//nolint:gocritic // intentionally useless lambda, but useful as shorthand
-	ip := func(ipStr string) netaddr.IP { // shorthand
-		return netaddr.MustParseIP(ipStr)
+	ip := func(ipStr string) netip.Addr { // shorthand
+		return netip.MustParseAddr(ipStr)
 	}
 
 	assert.EqualString(t, ruleForIP(ip("192.168.1.18"), rules).ipPrefix.String(), "192.168.1.0/24")

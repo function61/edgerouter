@@ -7,16 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 
 	"github.com/function61/gokit/hcl2json"
 	"github.com/function61/gokit/jsonfile"
 	"github.com/function61/gokit/sliceutil"
-	"inet.af/netaddr"
 )
 
 type ipRule struct {
-	ipPrefix      netaddr.IPPrefix
+	ipPrefix      netip.Prefix
 	allowedAppIds []string // if empty, means all apps are allowed
 }
 
@@ -33,17 +33,17 @@ func ipAllowed(ipAndPortStr string, appToAccess string, rules []ipRule) (bool, s
 		return true, ""
 	}
 
-	ipAndPort, err := netaddr.ParseIPPort(ipAndPortStr)
+	ipAndPort, err := netip.ParseAddrPort(ipAndPortStr)
 	if err != nil {
 		return false, "invalid IP: " + err.Error()
 	}
 
 	// the port is not used for ACL (it's remote port anyway which is meaningless)
-	return ipAllowedInternal(ipAndPort.IP(), appToAccess, rules)
+	return ipAllowedInternal(ipAndPort.Addr(), appToAccess, rules)
 }
 
 // do not use directly
-func ipAllowedInternal(ip netaddr.IP, appToAccess string, rules []ipRule) (bool, string) {
+func ipAllowedInternal(ip netip.Addr, appToAccess string, rules []ipRule) (bool, string) {
 	if matchingRule := ruleForIP(ip, rules); matchingRule != nil {
 		if matchingRule.AllowsApp(appToAccess) {
 			return true, ""
@@ -56,7 +56,7 @@ func ipAllowedInternal(ip netaddr.IP, appToAccess string, rules []ipRule) (bool,
 	return false, fmt.Sprintf("your IP (%s) is not allowed (implicit deny)", ip.String())
 }
 
-func ruleForIP(ip netaddr.IP, rules []ipRule) *ipRule {
+func ruleForIP(ip netip.Addr, rules []ipRule) *ipRule {
 	for _, rule := range rules {
 		if rule.ipPrefix.Contains(ip) {
 			return &rule
@@ -69,11 +69,11 @@ func ruleForIP(ip netaddr.IP, rules []ipRule) *ipRule {
 // factories
 
 // funky signature to make sure we get at least one app (0 apps by accident would be catastrophic)
-func allowOnlyApps(prefix netaddr.IPPrefix, app1 string, appN ...string) ipRule {
+func allowOnlyApps(prefix netip.Prefix, app1 string, appN ...string) ipRule {
 	return ipRule{prefix, append([]string{app1}, appN...)}
 }
 
-func allowAllApps(prefix netaddr.IPPrefix) ipRule {
+func allowAllApps(prefix netip.Prefix) ipRule {
 	return ipRule{prefix, nil}
 }
 
@@ -112,11 +112,11 @@ func parseHclRules(content io.Reader) ([]ipRule, error) {
 	rules := []ipRule{}
 
 	for _, allowAllItem := range conf.AllowAllApps {
-		rules = append(rules, allowAllApps(netaddr.MustParseIPPrefix(allowAllItem.Prefix)))
+		rules = append(rules, allowAllApps(mustParsePrefix(allowAllItem.Prefix)))
 	}
 
 	for _, allowSpecified := range conf.AllowOnlyApps {
-		rules = append(rules, allowOnlyApps(netaddr.MustParseIPPrefix(allowSpecified.Prefix), allowSpecified.Apps[0], allowSpecified.Apps[1:]...))
+		rules = append(rules, allowOnlyApps(mustParsePrefix(allowSpecified.Prefix), allowSpecified.Apps[0], allowSpecified.Apps[1:]...))
 	}
 
 	if len(rules) == 0 {
@@ -134,4 +134,13 @@ func unmarhsalHcl(content io.Reader, data interface{}) error {
 	}
 
 	return jsonfile.Unmarshal(asJSON, data, true)
+}
+
+func mustParsePrefix(rawPrefix string) netip.Prefix {
+	prefix, err := netip.ParsePrefix(rawPrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	return prefix
 }

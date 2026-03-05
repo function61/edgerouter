@@ -17,7 +17,6 @@ require (
 	github.com/scylladb/termtables v1.0.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.19.0
-	inet.af/netaddr v0.0.0-20230525184311-b8eac61e914a
 )
 
 require (
@@ -38,8 +37,6 @@ require (
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	go4.org/intern v0.0.0-20230525184215-6c62f75575cb // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20231121144256-b99613f794b6 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect

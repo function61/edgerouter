@@ -10,14 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"path/filepath"
 	"sort"
 	"sync"
 
 	"github.com/function61/edgerouter/pkg/syncutil"
-	"github.com/function61/gokit/logex"
 )
 
 type FileToDeploy struct {
@@ -33,11 +32,11 @@ type ManifestWithID struct {
 
 type deploymentManager struct {
 	storages CASPair
-	logl     *logex.Leveled
+	logger   *slog.Logger
 }
 
-func NewDeploymentManager(storages CASPair, logger *log.Logger) *deploymentManager {
-	return &deploymentManager{storages, logex.Levels(logger)}
+func NewDeploymentManager(storages CASPair, logger *slog.Logger) *deploymentManager {
+	return &deploymentManager{storages, logger}
 }
 
 // deploys files by inserting them into a CAS. you'll get back a manifest ID (which is found from manifest CAS)
@@ -63,7 +62,10 @@ func (d *deploymentManager) Deploy(
 		for item := range work {
 			contentID := calculateContentID(item.buf)
 
-			d.logl.Info.Printf("uploading %s", item.file.Path)
+			d.logger.Info("uploading file",
+				"path", item.file.Path,
+				"content_id", contentID.String(),
+			)
 
 			contentType := mime.TypeByExtension(filepath.Ext(item.file.Path))
 			if contentType == "" {

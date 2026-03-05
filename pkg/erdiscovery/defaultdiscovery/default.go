@@ -3,20 +3,19 @@
 package defaultdiscovery
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/eventhorizon/pkg/ehreader"
-	"github.com/function61/gokit/logex"
 )
 
 // currently uses ehdiscovery as default
-func New(logger *log.Logger) (erdiscovery.ReaderWriter, error) {
+func New(logger *slog.Logger) (erdiscovery.ReaderWriter, error) {
 	tenantCtx, err := ehreader.TenantCtxFrom(ehreader.ConfigFromEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	return ehdiscovery.New(*tenantCtx, logex.Prefix("ehdiscovery", logger))
+	return ehdiscovery.New(*tenantCtx, logger)
 }

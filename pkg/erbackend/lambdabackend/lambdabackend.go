@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -28,7 +28,7 @@ type lambdaBackend struct {
 	isPayloadV2  bool // https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
 }
 
-func New(ctx context.Context, opts erconfig.BackendOptsAwsLambda, logger *log.Logger) (http.Handler, error) {
+func New(ctx context.Context, opts erconfig.BackendOptsAwsLambda, logger *slog.Logger) (http.Handler, error) {
 	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(opts.RegionID))
 	if err != nil {
 		return nil, err

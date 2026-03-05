@@ -4,13 +4,14 @@ package erservercli
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/function61/edgerouter/pkg/erserver"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/gokit/dynversion"
 	"github.com/function61/gokit/fileexists"
-	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/osutil"
 	"github.com/function61/gokit/systemdinstaller"
 	"github.com/spf13/cobra"
@@ -40,12 +41,12 @@ func Entrypoint(opts Options) *cobra.Command {
 		Short: "Runs the HTTP server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			rootLogger := logex.StandardLogger()
+			logger := slogshim.New()
 
 			osutil.ExitIfError(erserver.Serve(
-				osutil.CancelOnInterruptOrTerminate(rootLogger),
+				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
 				opts.ConfigDir(),
-				rootLogger))
+				logger))
 		},
 	})
 

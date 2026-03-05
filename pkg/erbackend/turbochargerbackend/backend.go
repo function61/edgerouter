@@ -4,23 +4,22 @@ package turbochargerbackend
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/function61/edgerouter/pkg/turbocharger"
-	"github.com/function61/gokit/logex"
 )
 
 // doesn't do much more than binds a static manifest ID to the backend. in case the manifest changes
 // (a different version of a website gets deployed), that's an Edgerouter-level concern and it will make a new backend instance.
-func New(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logger) (http.Handler, error) {
-	manifestHandler, err := turbocharger.GetManifestHandlerSingleton(ctx)
+func New(ctx context.Context, manifestID turbocharger.ObjectID, logger *slog.Logger) (http.Handler, error) {
+	manifestHandler, err := turbocharger.GetManifestHandlerSingleton(ctx, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	logl := logex.Levels(logger)
+	backendLogger := logger.With("subsystem", "turbocharger-backend")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/") { // "/foo/" => "/foo/index.html"
@@ -28,7 +27,11 @@ func New(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logg
 		}
 
 		if err := manifestHandler.ServeHTTPFromManifest(manifestID, w, r); err != nil {
-			logl.Error.Println(err.Error())
+			backendLogger.Error("serve from manifest",
+				"error", err,
+				"manifest_id", manifestID.String(),
+				"path", r.URL.Path,
+			)
 		}
 	}), nil
 }

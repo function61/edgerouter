@@ -4,7 +4,6 @@ package dockerdiscovery
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -35,7 +34,7 @@ func HasConfigInEnv() bool {
 	return os.Getenv("DOCKER_URL") != ""
 }
 
-func New() (erdiscovery.Reader, error) {
+func New(logger *slog.Logger) (erdiscovery.Reader, error) {
 	dockerURL, err := envvar.Required("DOCKER_URL")
 	if err != nil {
 		return nil, err
@@ -67,6 +66,7 @@ func New() (erdiscovery.Reader, error) {
 		dockerNetworkName: dockerNetworkName,
 		dockerURL:         dockerURL,
 		dockerClient:      dockerClient,
+		logger:            logger,
 	}, nil
 }
 
@@ -74,6 +74,7 @@ type dockerDiscovery struct {
 	dockerNetworkName string
 	dockerURL         string
 	dockerClient      *http.Client
+	logger            *slog.Logger
 }
 
 func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
@@ -82,7 +83,7 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 		return nil, err
 	}
 
-	bareContainers, err := discoverDockerContainers(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, swarmServices)
+	bareContainers, err := discoverDockerContainers(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, swarmServices, s.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,9 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 	for _, service := range swarmServicesAndBareContainers {
 		app, err := traefikAnnotationsToApp(service)
 		if err != nil {
-			log.Println(fmt.Errorf("%s: traefikAnnotationsToApp: %w", service.Name, err).Error())
+			s.logger.Error("traefikAnnotationsToApp",
+				"service", service.Name,
+				"error", err)
 			continue
 		}
 		if app == nil { // non-error skip
@@ -209,6 +212,7 @@ func discoverDockerContainers(
 	dockerNetworkName string,
 	dockerClient *http.Client,
 	alreadyDiscoveredFromSwarm []Service,
+	logger *slog.Logger,
 ) ([]Service, error) {
 	services := []Service{}
 
@@ -276,7 +280,7 @@ func discoverDockerContainers(
 		if settings, found := container.NetworkSettings.Networks["host"]; !ipFound() && found {
 			// when host network, settings doesn't specify IP address
 			if settings.IPAddress != "" {
-				slog.Warn("IPAddress not expected for host", "container", container.Id)
+				logger.Warn("IPAddress not expected for host", "container", container.Id)
 				continue
 			}
 			ipAddress = "127.0.0.1"

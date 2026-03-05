@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"mime"
 	"net/http"
 	"path"
@@ -18,7 +19,6 @@ import (
 	"sync"
 
 	"github.com/function61/edgerouter/pkg/syncutil"
-	"github.com/function61/gokit/logex"
 )
 
 type ManifestHandler struct {
@@ -35,19 +35,19 @@ type ManifestHandler struct {
 	cachedManifests   map[ObjectID]*optimizedManifest
 	cachedManifestsMu sync.Mutex
 
-	logl *logex.Leveled
+	logger *slog.Logger
 }
 
-func NewManifestHandlerAndStorages(ctx context.Context) (*ManifestHandler, error) {
+func NewManifestHandlerAndStorages(ctx context.Context, logger *slog.Logger) (*ManifestHandler, error) {
 	storages, err := StorageFromConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return newManifestHandler(*storages)
+	return newManifestHandler(*storages, logger)
 }
 
-func newManifestHandler(originFilesAndManifests CASPair) (*ManifestHandler, error) {
+func newManifestHandler(originFilesAndManifests CASPair, logger *slog.Logger) (*ManifestHandler, error) {
 	cacheGzipped, err := newFileStore("/var/cache/edgerouter/turbocharger/gzipped")
 	if err != nil {
 		return nil, fmt.Errorf("turbocharger: %w", err)
@@ -58,11 +58,11 @@ func newManifestHandler(originFilesAndManifests CASPair) (*ManifestHandler, erro
 		return nil, fmt.Errorf("turbocharger: %w", err)
 	}
 
-	return newManifestHandlerWithCaches(originFilesAndManifests, cacheGzipped, cacheUncompressed), nil
+	return newManifestHandlerWithCaches(originFilesAndManifests, cacheGzipped, cacheUncompressed, logger), nil
 }
 
 // for testing
-func newManifestHandlerWithCaches(originFilesAndManifests CASPair, cacheGzipped CAS, cacheUncompressed CAS) *ManifestHandler {
+func newManifestHandlerWithCaches(originFilesAndManifests CASPair, cacheGzipped CAS, cacheUncompressed CAS, logger *slog.Logger) *ManifestHandler {
 	return &ManifestHandler{
 		originFilesAndManifests:     originFilesAndManifests,
 		originFileDownloadLocks:     syncutil.NewMutexMap(),
@@ -70,7 +70,7 @@ func newManifestHandlerWithCaches(originFilesAndManifests CASPair, cacheGzipped 
 		cacheGzipped:                cacheGzipped,
 		cacheUncompressed:           cacheUncompressed,
 		cachedManifests:             map[ObjectID]*optimizedManifest{},
-		logl:                        logex.Levels(logex.Discard),
+		logger:                      logger.With("subsystem", "turbocharger-manifest"),
 	}
 }
 
@@ -175,7 +175,7 @@ func (h *ManifestHandler) serveFromCache(file Path, status int, w http.ResponseW
 
 		return true, sendToClient(gzipped, true)
 	} else if err != fs.ErrNotExist { // an actual error with the cache => serve from origin
-		h.logl.Error.Printf("cacheGzipped: %v", err)
+		h.logger.Error("read gzipped cache failed", "error", err, "content_id", file.ContentID.String(), "path", file.Path)
 	}
 
 	// => gzipped cache miss -> try from uncompressed cache
@@ -186,7 +186,7 @@ func (h *ManifestHandler) serveFromCache(file Path, status int, w http.ResponseW
 
 		return true, sendToClient(uncompressed, false)
 	} else if err != fs.ErrNotExist { // an actual error with the cache => serve from origin
-		h.logl.Error.Printf("cacheUncompressed: %v", err)
+		h.logger.Error("read uncompressed cache failed", "error", err, "content_id", file.ContentID.String(), "path", file.Path)
 	}
 
 	// => missed both caches
@@ -348,7 +348,7 @@ func (h *ManifestHandler) resolveManifest(manifestID ObjectID) (*optimizedManife
 
 			return DecodeManifest(manifest)
 		case !errors.Is(err, fs.ErrNotExist): // actually unexpected error
-			h.logl.Error.Printf("resolveManifest cacheUncompressed: %v", err)
+			h.logger.Error("read cached manifest failed", "error", err, "manifest_id", manifestID.String())
 		}
 
 		// then read from manifest origin (and remember to hydrate cache)
@@ -366,7 +366,7 @@ func (h *ManifestHandler) resolveManifest(manifestID ObjectID) (*optimizedManife
 
 		// hydrate cache
 		if err := h.cacheUncompressed.InsertObject(context.Background(), manifestID, bytes.NewReader(manifestBuf), "application/json"); err != nil {
-			h.logl.Error.Printf("resolveManifest cacheUncompressed: %v", err)
+			h.logger.Error("cache manifest insert failed", "error", err, "manifest_id", manifestID.String())
 		}
 
 		return DecodeManifest(bytes.NewReader(manifestBuf))

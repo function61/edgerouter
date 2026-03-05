@@ -8,6 +8,7 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ func mkEntrypoint() *cobra.Command {
 }
 
 func mk(applicationID string, hostname string, path string, stripPath bool, functionName string, regionID string) error {
-	discoverySvc, err := defaultdiscovery.New(nil)
+	discoverySvc, err := defaultdiscovery.New(slogshim.New())
 	if err != nil {
 		return err
 	}

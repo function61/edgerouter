@@ -2,11 +2,13 @@ package ehdiscovery
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdomain"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/eventhorizon/pkg/ehreader/ehreadertest"
@@ -23,7 +25,7 @@ func TestDiscovery(t *testing.T) {
 
 	tenantCtx := ehreader.NewTenantCtx(ehreader.TenantId("42"), eventLog)
 
-	discovery, err := New(*tenantCtx, nil)
+	discovery, err := New(*tenantCtx, slogshim.NewWithOutput(io.Discard))
 	assert.Ok(t, err)
 
 	apps, err := discovery.ReadApplications(ctx)

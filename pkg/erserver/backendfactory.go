@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/function61/edgerouter/pkg/erbackend/authssobackend"
@@ -17,7 +17,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/logex"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -28,7 +27,7 @@ func makeBackend(
 	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
-	parentLogger *log.Logger,
+	parentLogger *slog.Logger,
 ) (http.Handler, error) {
 	configDigest, err := json.Marshal(backendConf)
 	if err != nil {
@@ -59,10 +58,10 @@ func makeBackendInternal(
 	appID string,
 	backendConf erconfig.Backend,
 	currentConfig erconfig.CurrentConfigAccessor,
-	parentLogger *log.Logger,
+	parentLogger *slog.Logger,
 ) (http.Handler, error) {
-	appSpecificLogger := func() *log.Logger { // helper
-		return logex.Prefix(appID, parentLogger)
+	appSpecificLogger := func() *slog.Logger { // helper
+		return parentLogger.With("app", appID)
 	}
 
 	switch backendConf.Kind {

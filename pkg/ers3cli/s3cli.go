@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
-	"github.com/function61/gokit/logex"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
@@ -27,8 +28,9 @@ func Entrypoint() *cobra.Command {
 		Short: "Deploys a static website to all edgerouter servers",
 		Args:  cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
+			logger := slogshim.New()
 			osutil.ExitIfError(s3Deploy(
-				osutil.CancelOnInterruptOrTerminate(logex.StandardLogger()),
+				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
 				args[0],
 				args[1],
 				args[2]))
@@ -46,7 +48,7 @@ func s3Deploy(
 	deployVersion string,
 	pathToArchive string,
 ) error {
-	discoverySvc, err := defaultdiscovery.New(nil)
+	discoverySvc, err := defaultdiscovery.New(slogshim.New())
 	if err != nil {
 		return err
 	}
@@ -68,7 +70,7 @@ func s3Deploy(
 }
 
 func s3Mk(applicationID string, hostname string, path string, stripPath bool, bucketName string, regionID string) error {
-	discoverySvc, err := defaultdiscovery.New(nil)
+	discoverySvc, err := defaultdiscovery.New(slogshim.New())
 	if err != nil {
 		return err
 	}

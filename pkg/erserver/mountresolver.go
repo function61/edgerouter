@@ -3,7 +3,7 @@ package erserver
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"sort"
@@ -58,7 +58,7 @@ func appConfigToHandlersAndMatchers(
 	apps []erconfig.Application,
 	currentConfig erconfig.CurrentConfigAccessor,
 	timestamp time.Time,
-	parentLogger *log.Logger,
+	parentLogger *slog.Logger,
 ) (*frontendMatchers, error) {
 	fem := newFrontendMatchers(apps, timestamp)
 

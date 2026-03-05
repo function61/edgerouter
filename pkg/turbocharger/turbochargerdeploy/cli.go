@@ -6,14 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger"
-	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
@@ -29,13 +29,13 @@ func CLIEntrypoint() *cobra.Command {
 		Short: "Deploy a tar package into the storage, so it can be referenced from somewhere",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			rootLogger := logex.StandardLogger()
+			logger := slogshim.New()
 
 			osutil.ExitIfError(tarDeploy(
-				osutil.CancelOnInterruptOrTerminate(rootLogger),
+				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
 				args[0],
 				os.Stdin,
-				rootLogger))
+				logger))
 		},
 	})
 
@@ -44,7 +44,7 @@ func CLIEntrypoint() *cobra.Command {
 		Short: "(For debug or rescue) download site from remote to local",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			rootLogger := logex.StandardLogger()
+			logger := slogshim.New()
 
 			osutil.ExitIfError(func() error {
 				manifestID, err := turbocharger.ObjectIDFromString(args[0])
@@ -53,9 +53,9 @@ func CLIEntrypoint() *cobra.Command {
 				}
 
 				return downloadFromStore(
-					osutil.CancelOnInterruptOrTerminate(rootLogger),
+					osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
 					*manifestID,
-					rootLogger)
+					logger)
 			}())
 		},
 	})
@@ -63,7 +63,7 @@ func CLIEntrypoint() *cobra.Command {
 	return cmd
 }
 
-func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger *log.Logger) error {
+func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger *slog.Logger) error {
 	if project == "" {
 		return errors.New("project cannot be empty")
 	}
@@ -105,18 +105,18 @@ func tarDeploy(ctx context.Context, project string, tarStream io.Reader, logger 
 		return err
 	}
 
-	logex.Levels(logger).Info.Printf(
-		"manifest %s and %d files have been deployed to CAS in %s\n",
-		manifest.ID.String(),
-		len(manifest.Manifest.Files),
-		time.Since(started))
+	logger.Info("manifest deployed to CAS",
+		"manifest_id", manifest.ID.String(),
+		"file_count", len(manifest.Manifest.Files),
+		"duration", time.Since(started),
+	)
 
 	fmt.Println(manifest.ID.String()) // to stdout so scripts can automate on this
 
 	return nil
 }
 
-func downloadFromStore(ctx context.Context, manifestID turbocharger.ObjectID, logger *log.Logger) error {
+func downloadFromStore(ctx context.Context, manifestID turbocharger.ObjectID, logger *slog.Logger) error {
 	storages, err := turbocharger.StorageFromConfig(ctx)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func downloadFromStore(ctx context.Context, manifestID turbocharger.ObjectID, lo
 	}
 
 	for _, file := range manifest.Files {
-		logger.Printf("downloading %s", file.Path)
+		logger.Info("downloading", "path", file.Path)
 
 		if err := func() error {
 			content, err := storages.Files.GetObject(ctx, file.ContentID)

@@ -7,7 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
@@ -30,7 +30,7 @@ import (
 //   3) press F5 from browser. this'll inject 304 Not Modified into cache (browser expects 304 but CACHE NOT)
 //   4) now use cURL to request the same resource (= without caching), and you'll get 304 🤦
 
-func New(ctx context.Context, appID string, opts erconfig.BackendOptsReverseProxy, logger *log.Logger) (http.Handler, error) {
+func New(ctx context.Context, appID string, opts erconfig.BackendOptsReverseProxy, logger *slog.Logger) (http.Handler, error) {
 	handler, err := NewWithModifyResponse(appID, opts, nil)
 	if err != nil {
 		return nil, err

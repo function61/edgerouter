@@ -3,7 +3,7 @@ package ehdiscovery
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"sort"
 	"sync"
@@ -12,10 +12,10 @@ import (
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdomain"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/eventhorizon/pkg/ehclient"
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
-	"github.com/function61/gokit/logex"
 )
 
 const (
@@ -30,20 +30,20 @@ type ehDiscovery struct {
 	tenantCtx ehreader.TenantCtx
 	reader    *ehreader.Reader
 	cursor    ehclient.Cursor
-	logl      *logex.Leveled
+	logger    *slog.Logger
 	apps      map[string]erconfig.Application
 	appsMu    sync.Mutex
 }
 
-func New(tenantCtx ehreader.TenantCtx, logger *log.Logger) (erdiscovery.ReaderWriter, error) {
+func New(tenantCtx ehreader.TenantCtx, logger *slog.Logger) (erdiscovery.ReaderWriter, error) {
 	d := &ehDiscovery{
 		tenantCtx: tenantCtx,
 		cursor:    ehclient.Beginning(tenantCtx.Stream(stream)),
-		logl:      logex.Levels(logger),
+		logger:    logger.With("subsystem", "ehdiscovery"),
 		apps:      map[string]erconfig.Application{},
 	}
 
-	d.reader = ehreader.New(d, tenantCtx.Client, logger)
+	d.reader = ehreader.New(d, tenantCtx.Client, slogshim.ToStd(logger.With("subsystem", "ehdiscovery/ehreader"), slog.LevelInfo))
 
 	return d, nil
 }
@@ -105,7 +105,7 @@ func (d *ehDiscovery) ProcessEvents(ctx context.Context, handle ehreader.EventPr
 }
 
 func (d *ehDiscovery) processEvent(ev ehevent.Event) error {
-	d.logl.Info.Println(ev.MetaType())
+	d.logger.Info(ev.MetaType())
 
 	switch e := ev.(type) {
 	case *erdomain.AppUpdated:

@@ -2,12 +2,11 @@ package erserver
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/logex"
 )
 
 func scheduledSync(
@@ -15,11 +14,9 @@ func scheduledSync(
 	discovery erdiscovery.Reader,
 	configUpdated chan<- *frontendMatchers,
 	currentConfig erconfig.CurrentConfigAccessor,
-	parentLogger *log.Logger,
-	logger *log.Logger,
+	parentLogger *slog.Logger,
+	logger *slog.Logger,
 ) error {
-	logl := logex.Levels(logger)
-
 	// if we used S3 discovery backend:
 	//   - pricing: "$0.005 per LIST 1,000 reqs"
 	//   - every 5 secs => 17 280 reqs/day => 525 600 reqs/month = 2.628 $/month per loadbalancer
@@ -31,9 +28,9 @@ func scheduledSync(
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			conf, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, parentLogger, logl)
+			conf, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, parentLogger, logger)
 			if err != nil {
-				logl.Error.Printf("syncAppsFromDiscovery: %v", err)
+				logger.Error("syncAppsFromDiscovery", "error", err)
 				continue
 			}
 
@@ -42,7 +39,7 @@ func scheduledSync(
 			default:
 				// if we tried to block, we could block forever if consumer went away
 				// (already exited for example)
-				logl.Error.Println("configUpdated blocks")
+				logger.Error("configUpdated blocks")
 			}
 		}
 	}

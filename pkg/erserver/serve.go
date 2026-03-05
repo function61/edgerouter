@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,10 +24,10 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
 	"github.com/function61/edgerouter/pkg/todoupgradegokit"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/gokit/envvar"
-	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/taskrunner"
 )
 
@@ -37,15 +37,13 @@ const (
 
 type GetCertificateFn func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
-	logl := logex.Levels(logger)
-
+func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error {
 	metrics := initMetrics()
 
 	waitAlreadyDoneFIXMENOTNEEDEDLONG := false
 
 	tasksCtx, tasksCancel := context.WithCancel(ctx)
-	tasks := taskrunner.New(tasksCtx, logger)
+	tasks := taskrunner.New(tasksCtx, slogshim.ToStd(logger, slog.LevelInfo))
 	defer func() {
 		// this defer is only needed for early exits to stop certbus sync task. if we exit from happy
 		// path at bottom of this fn, this is not needed (but does not hurt to run twice)
@@ -56,14 +54,15 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 
 		// this currently has a bug which is fixed when we can update to new gokit
 		if err := tasks.Wait(); err != nil {
-			logl.Error.Printf("taskrunner early-exit Wait(): %v", err)
+			logger.Error("taskrunner early-exit Wait failed", "error", err)
 		}
 	}()
 	defer tasksCancel()
 
 	getCertificateFn, err := func() (GetCertificateFn, error) {
+		certbusLogger := logger.With("subsystem", "certbus")
 		if os.Getenv("CERTBUS_CLIENT_PRIVKEY") != "" {
-			certBus, err := makeCertBus(ctx, logex.Prefix("certbus", logger))
+			certBus, err := makeCertBus(ctx, certbusLogger)
 			if err != nil {
 				return nil, err
 			}
@@ -72,14 +71,13 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 
 			return certBus.GetCertificateAdapter(), nil
 		} else {
-			logl.Info.Printf("CertBus not configured - assuming local dev-server & using %s", configDir.DevelopmentCertificate())
+			certbusLogger.Info("not configured - assuming local dev-server", "certificate", configDir.DevelopmentCertificate())
 
 			// this is expected to be configured with mkcert or similar
 			keyPair, err := tls.LoadX509KeyPair(configDir.DevelopmentCertificate(), configDir.DevelopmentCertificate())
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
-					return nil, fmt.Errorf(
-						"certificate not found - run '$ %s setup-devcerts' first: %w",
+					return nil, fmt.Errorf("certificate not found - run '$ %s setup-devcerts' first: %w",
 						os.Args[0],
 						err)
 				} else {
@@ -103,10 +101,10 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 	currentConfig := newAtomicConfig()
 
 	// initial sync so we won't start dealing out 404s when HTTP server starts
-	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logger, logl)
+	initialConfig, err := syncAppsFromDiscovery(ctx, discovery, currentConfig, logger, logger)
 	if err != nil {
 		// not treating this as a fatal error though
-		logl.Error.Printf("initial sync failed: %v", err)
+		logger.Error("initial sync failed", "error", err)
 	} else {
 		currentConfig.Store(initialConfig)
 	}
@@ -204,7 +202,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
 	})
 
-	logl.Info.Printf("turbocharger middleware activated=%v", turbocharger.MiddlewareConfigAvailable())
+	logger.Info("turbocharger middleware status", "activated", turbocharger.MiddlewareConfigAvailable())
 
 	configUpdated := make(chan *frontendMatchers, 1)
 
@@ -245,7 +243,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *log.Logger) error {
 			configUpdated,
 			currentConfig,
 			logger,
-			logex.Prefix("configsyncscheduler", logger))
+			logger.With("subsystem", "configsyncscheduler"))
 	})
 
 	for {
@@ -263,8 +261,8 @@ func syncAppsFromDiscovery(
 	ctx context.Context,
 	discovery erdiscovery.Reader,
 	currentConfig erconfig.CurrentConfigAccessor,
-	parentLogger *log.Logger,
-	logl *logex.Leveled,
+	parentLogger *slog.Logger,
+	logger *slog.Logger,
 ) (*frontendMatchers, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -291,7 +289,7 @@ func syncAppsFromDiscovery(
 		apps = append(apps, prom)
 	}
 
-	logl.Info.Printf("discovered %d app(s)", len(apps))
+	logger.Info("applications discovered", "count", len(apps))
 
 	matchers, err := appConfigToHandlersAndMatchers(ctx, apps, currentConfig, time.Now(), parentLogger)
 	if err != nil {
@@ -301,7 +299,7 @@ func syncAppsFromDiscovery(
 	return matchers, nil
 }
 
-func configureDiscovery(ctx context.Context, logger *log.Logger) (erdiscovery.Reader, error) {
+func configureDiscovery(ctx context.Context, logger *slog.Logger) (erdiscovery.Reader, error) {
 	readers := []erdiscovery.Reader{}
 
 	if s3discovery.HasConfigInEnv() {
@@ -314,7 +312,7 @@ func configureDiscovery(ctx context.Context, logger *log.Logger) (erdiscovery.Re
 	}
 
 	if dockerdiscovery.HasConfigInEnv() {
-		docker, err := dockerdiscovery.New()
+		docker, err := dockerdiscovery.New(logger)
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +326,7 @@ func configureDiscovery(ctx context.Context, logger *log.Logger) (erdiscovery.Re
 			return nil, fmt.Errorf("ehdiscovery: %w", err)
 		}
 
-		ehDiscovery, err := ehdiscovery.New(*tenantCtx, logex.Prefix("ehdiscovery", logger))
+		ehDiscovery, err := ehdiscovery.New(*tenantCtx, logger)
 		if err != nil {
 			return nil, fmt.Errorf("ehdiscovery: %w", err)
 		}
@@ -348,7 +346,7 @@ func configureDiscovery(ctx context.Context, logger *log.Logger) (erdiscovery.Re
 	return erdiscovery.MultiDiscovery(readers), nil
 }
 
-func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) {
+func makeCertBus(ctx context.Context, logger *slog.Logger) (*certbus.App, error) {
 	// loadbalancer's CertBus private key for which the certificate private keys are encrypted
 	certBusPrivateKey, err := envvar.RequiredFromBase64Encoded("CERTBUS_CLIENT_PRIVKEY")
 	if err != nil {
@@ -360,11 +358,7 @@ func makeCertBus(ctx context.Context, logger *log.Logger) (*certbus.App, error) 
 		return nil, err
 	}
 
-	certBus, err := certbus.New(
-		ctx,
-		*tenantCtx,
-		string(certBusPrivateKey),
-		logger)
+	certBus, err := certbus.New(ctx, *tenantCtx, string(certBusPrivateKey), slogshim.ToStd(logger, slog.LevelInfo))
 	if err != nil {
 		return nil, err
 	}

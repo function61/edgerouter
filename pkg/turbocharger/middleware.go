@@ -13,7 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,8 +21,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/function61/gokit/logex"
 )
 
 const (
@@ -36,7 +34,7 @@ type turbochargerMiddleware struct {
 
 	discovered atomic.Value // *discoveredSubtree
 
-	logl *logex.Leveled
+	logger *slog.Logger
 }
 
 // describes origin's subtree (e.g. /static and its version's files) for one validity period (such as 5 seconds).
@@ -51,12 +49,12 @@ type discoveredSubtree struct {
 	validUntil         <-chan struct{}    // obtained from ctx.Done(). closed when this *discoveredSubtree* should be considered stale.
 }
 
-func NewMiddleware(origin http.Handler, manifestHandler *ManifestHandler, logger *log.Logger) *turbochargerMiddleware {
+func NewMiddleware(origin http.Handler, manifestHandler *ManifestHandler, logger *slog.Logger) *turbochargerMiddleware {
 	return &turbochargerMiddleware{
 		origin:          origin,          // minimize requests to this
 		manifestHandler: manifestHandler, // by using this
 
-		logl: logex.Levels(logger),
+		logger: logger.With("subsystem", "turbocharger-middleware"),
 	}
 }
 
@@ -90,7 +88,7 @@ func (t *turbochargerMiddleware) checkForTurbochargerAdvertisement(tcHeader stri
 
 	subtree, err := parseTCHeader(tcHeader)
 	if err != nil {
-		t.logl.Error.Printf("checkForTurbochargerAdvertisement: parseTCHeader: %v", err)
+		t.logger.Error("invalid turbocharger header", "error", err, "header", tcHeader)
 		return
 	}
 
@@ -99,7 +97,7 @@ func (t *turbochargerMiddleware) checkForTurbochargerAdvertisement(tcHeader stri
 	// contain the advertisement (except from the ping feature)
 	if existing, found := t.discovered.Load().(*discoveredSubtree); found {
 		if existing.subtreeVersion.Equal(*subtree) {
-			t.logl.Debug.Println("pre-attach race detected (not dangerous)")
+			t.logger.Debug("pre-attach race detected (not dangerous)")
 		} else { // shouldn't happen
 			t.detachTurbocharger(fmt.Errorf("got multiple conflicting advertisements in pre-attach state: %s vs. %s; detaching turbocharger",
 				existing.subtreeVersion.HeaderValue(),
@@ -108,7 +106,7 @@ func (t *turbochargerMiddleware) checkForTurbochargerAdvertisement(tcHeader stri
 	} else {
 		discovered := t.attachDiscoveredSubtree(*subtree, r)
 
-		t.logl.Info.Printf("attached turbocharger: %s (pingURL=%s)", tcHeader, discovered.pingURL)
+		t.logger.Info("attached turbocharger", "header", tcHeader, "ping_url", discovered.pingURL)
 	}
 }
 
@@ -164,10 +162,11 @@ func (t *turbochargerMiddleware) pingCheck(discoveredStale *discoveredSubtree, r
 	reloaded := t.attachDiscoveredSubtree(*subtree, r)
 
 	if !discoveredStale.subtreeVersion.Equal(reloaded.subtreeVersion) {
-		t.logl.Info.Printf(
-			"turbocharger reload from '%s' -> '%s'",
-			discoveredStale.subtreeVersion.HeaderValue(),
-			reloaded.subtreeVersion.HeaderValue())
+		t.logger.Info(
+			"turbocharger reloaded",
+			"from", discoveredStale.subtreeVersion.HeaderValue(),
+			"to", reloaded.subtreeVersion.HeaderValue(),
+		)
 	}
 
 	return nil
@@ -192,7 +191,7 @@ func (t *turbochargerMiddleware) attachDiscoveredSubtree(subtree turbochargeSubt
 		validUntil:     ctx.Done(),
 		originTurbocharged: http.StripPrefix(subtree.Prefix, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := t.manifestHandler.ServeHTTPFromManifest(subtree.ManifestID, w, r); err != nil {
-				t.logl.Error.Println(err.Error())
+				t.logger.Error("serve from manifest failed", "error", err, "manifest_id", subtree.ManifestID.String(), "path", r.URL.Path)
 			}
 		})),
 	}
@@ -208,7 +207,7 @@ func (t *turbochargerMiddleware) attachDiscoveredSubtree(subtree turbochargeSubt
 func (t *turbochargerMiddleware) detachTurbocharger(err error) {
 	t.discovered.Store((*discoveredSubtree)(nil))
 
-	t.logl.Error.Printf("detached turbocharger: %v", err)
+	t.logger.Error("detached turbocharger", "error", err)
 }
 
 // we maybe got request for /static/main.js. when validity period expires, we should query

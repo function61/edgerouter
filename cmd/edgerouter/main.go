@@ -2,16 +2,17 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend/turbochargererdeploy"
 	"github.com/function61/edgerouter/pkg/erlambdacli"
 	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger/turbochargerdeploy"
 	"github.com/function61/eventhorizon/pkg/ehcli"
 	"github.com/function61/gokit/dynversion"
-	"github.com/function61/gokit/logex"
 	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
@@ -42,12 +43,12 @@ func serveEntry() *cobra.Command {
 		Short: "Runs the HTTP server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			rootLogger := logex.StandardLogger()
+			logger := slogshim.New()
 
 			osutil.ExitIfError(erserver.Serve(
-				osutil.CancelOnInterruptOrTerminate(rootLogger),
+				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
 				erserver.DefaultConfigDir,
-				rootLogger))
+				logger))
 		},
 	}
 }

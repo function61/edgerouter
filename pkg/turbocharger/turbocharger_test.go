@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/gokit/assert"
 )
 
@@ -30,7 +32,7 @@ func TestTurbocharger(t *testing.T) {
 		Manifests: manifests,
 	}
 
-	deployer := NewDeploymentManager(storages, nil)
+	deployer := NewDeploymentManager(storages, slogshim.NewWithOutput(io.Discard))
 
 	filesToUpload := []*FileToDeploy{
 		&FileToDeploy{"/foo.txt", strings.NewReader("hello world")},
@@ -88,7 +90,7 @@ func TestTurbocharger(t *testing.T) {
 		assert.EqualString(t, strings.Join(noteworthy, ","), expected)
 	}
 
-	mh := newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed)
+	mh := newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slogshim.NewWithOutput(io.Discard))
 
 	// fetch initial manifest
 	{
@@ -118,7 +120,7 @@ func TestTurbocharger(t *testing.T) {
 	}
 
 	// simulate restarting a loadbalancer process. we'll lose manifest RAM cache ..
-	mh = newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed)
+	mh = newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slogshim.NewWithOutput(io.Discard))
 
 	// .. but will be able to load manifest from cache without having to contact manifest origin
 	{

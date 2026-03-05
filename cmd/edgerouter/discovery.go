@@ -13,6 +13,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
+	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/gokit/jsonfile"
 	"github.com/function61/gokit/osutil"
 	"github.com/scylladb/termtables"
@@ -195,5 +196,5 @@ func discoveryEntry() *cobra.Command {
 }
 
 func newDefaultDiscoveryWithoutLogger() (erdiscovery.ReaderWriter, error) {
-	return defaultdiscovery.New(nil)
+	return defaultdiscovery.New(slogshim.NewWithOutput(io.Discard))
 }

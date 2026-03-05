@@ -2,7 +2,7 @@ package turbocharger
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 )
@@ -17,14 +17,14 @@ var (
 
 // you'll likely want to use a global instance since manifests are designed to be reloaded rapidly
 // so there is no point in coupling the lifetime to a single manifest.
-func GetManifestHandlerSingleton(ctx context.Context) (*ManifestHandler, error) {
+func GetManifestHandlerSingleton(ctx context.Context, logger *slog.Logger) (*ManifestHandler, error) {
 	m := manifestHandlerSingleton // shorthand
 
 	m.mu.Lock() // we could use sync.Once, but it wouldn't protect from races to this getter
 	defer m.mu.Unlock()
 
 	if m.handler == nil && m.handlerInitErr == nil { // both nil only if init not called
-		m.handler, m.handlerInitErr = NewManifestHandlerAndStorages(ctx)
+		m.handler, m.handlerInitErr = NewManifestHandlerAndStorages(ctx, logger)
 	}
 
 	return m.handler, m.handlerInitErr
@@ -32,9 +32,9 @@ func GetManifestHandlerSingleton(ctx context.Context) (*ManifestHandler, error) 
 
 // doesn't error if middleware configuration not available.
 // errors if middleware configuration is available but has error, or if errors initializing.
-func WrapWithMiddlewareIfConfigAvailable(ctx context.Context, inner http.Handler, logger *log.Logger) (http.Handler, error) {
+func WrapWithMiddlewareIfConfigAvailable(ctx context.Context, inner http.Handler, logger *slog.Logger) (http.Handler, error) {
 	if MiddlewareConfigAvailable() {
-		manifestHandler, err := GetManifestHandlerSingleton(ctx)
+		manifestHandler, err := GetManifestHandlerSingleton(ctx, logger)
 		if err != nil {
 			return nil, err
 		}

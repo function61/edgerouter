@@ -25,7 +25,7 @@ require (
 
 require (
 	github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055 // indirect
-	github.com/aws/aws-sdk-go v1.30.20 // indirect
+	github.com/aws/aws-sdk-go v1.34.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.11 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.19 // indirect

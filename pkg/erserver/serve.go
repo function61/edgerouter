@@ -118,89 +118,8 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 		return err
 	}
 
-	// returns mount (i.e. application) that the URL matched.
-	// NOTE: does not imply the request entered the application (e.g. IP filtering or HTTPS-only rule might've blocked the request)
-	// nil mount if no URL matched means "no application found"
-	serveRequest := func(w http.ResponseWriter, r *http.Request) *Mount {
-		// load latest config in threadsafe manner
-		config := currentConfig.Load().(*frontendMatchers)
-
-		hostname, _, err := nonStupidSplitHostPort(r.Host)
-		if err != nil {
-			http.Error(w, "failed to parse hostname header: "+err.Error(), http.StatusBadRequest)
-			return nil
-		}
-
-		mount := resolveMount(hostname, r.URL.Path, config)
-		if mount == nil {
-			http.Error(w, "no website for hostname: "+hostname, http.StatusNotFound)
-			return nil
-		}
-
-		notSecure := r.TLS == nil
-
-		if notSecure && !mount.allowInsecureHTTP { // important that this is done before stripPrefix
-			redirectHTTPToHTTPS(w, r) // come back when you have TLS, bro
-			return mount
-		}
-
-		// todo: respect x-forwarded-for headers but only if configured as trusted
-		if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.ID, ipRules); !allowed {
-			http.Error(w, errStr, http.StatusForbidden)
-			return mount
-		}
-
-		if mount.stripPrefix {
-			// path=/files/foobar.txt stripPrefix=/files/
-			// => "foobar.txt"
-			newPath := r.URL.Path[len(mount.prefix):]
-			if !strings.HasPrefix(newPath, "/") { // "foobar.txt" => "/foobar.txt"
-				newPath = "/" + newPath
-			}
-
-			r.URL.Path = newPath
-
-		}
-
-		// pass the request to the concrete application where the actually interesting things happen.
-		// the path (reversed) looks like this:
-		//
-		// Application
-		// └── serveRequest (app routing/resolving, HTTP-to-HTTPS redirection, IP filtering)
-		//     └── serveRequestWithMetricsCapture
-		//         ├── listener :443
-		//         └── listener :80
-		mount.backend.ServeHTTP(w, r)
-
-		return mount
-	}
-
 	// shared handler for both HTTPS and HTTP
-	serveRequestWithMetricsCapture := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var mount *Mount
-		// see for greatly written rationale https://github.com/felixge/httpsnoop
-		// tl;dr: response snooping is hard without losing Websocket etc. support
-		stats := httpsnoop.CaptureMetrics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mount = serveRequest(w, r)
-		}), w, r)
-
-		appID := func() string {
-			if mount != nil {
-				return mount.App.ID
-			} else {
-				return "appNotFound"
-			}
-		}()
-
-		if stats.Code < 400 {
-			incAppCodeMethodCounter(metrics.requestsOk, appID, strconv.Itoa(stats.Code), r.Method)
-		} else {
-			incAppCodeMethodCounter(metrics.requestsFail, appID, strconv.Itoa(stats.Code), r.Method)
-		}
-
-		metrics.requestDuration.WithLabelValues(appID).Observe(stats.Duration.Seconds())
-		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
-	})
+	serveRequestWithMetricsCapture := newServerHandler(currentConfig, ipRules, metrics)
 
 	logger.Info("turbocharger middleware status", "activated", turbocharger.MiddlewareConfigAvailable())
 
@@ -255,6 +174,94 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 			currentConfig.Store(config)
 		}
 	}
+}
+
+func newServerHandler(currentConfig *atomicConfig, ipRules []ipRule, metrics *metricsStore) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var mount *Mount
+		// see for greatly written rationale https://github.com/felixge/httpsnoop
+		// tl;dr: response snooping is hard without losing Websocket etc. support
+		stats := httpsnoop.CaptureMetrics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mount = serveRequest(w, r, currentConfig, ipRules)
+		}), w, r)
+
+		appID := func() string {
+			if mount != nil {
+				return mount.App.ID
+			} else {
+				return "appNotFound"
+			}
+		}()
+
+		if stats.Code < 400 {
+			incAppCodeMethodCounter(metrics.requestsOk, appID, strconv.Itoa(stats.Code), r.Method)
+		} else {
+			incAppCodeMethodCounter(metrics.requestsFail, appID, strconv.Itoa(stats.Code), r.Method)
+		}
+
+		metrics.requestDuration.WithLabelValues(appID).Observe(stats.Duration.Seconds())
+		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
+	})
+}
+
+// Returns the mount that matched the request. A mount can be returned even when a policy such as
+// HTTPS enforcement or IP filtering prevents the request from reaching the application.
+func serveRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	currentConfig *atomicConfig,
+	ipRules []ipRule,
+) *Mount {
+	// load latest config in threadsafe manner
+	config := currentConfig.Load().(*frontendMatchers)
+
+	hostname, _, err := nonStupidSplitHostPort(r.Host)
+	if err != nil {
+		http.Error(w, "failed to parse hostname header: "+err.Error(), http.StatusBadRequest)
+		return nil
+	}
+
+	mount := resolveMount(hostname, r.URL.Path, config)
+	if mount == nil {
+		http.Error(w, "no website for hostname: "+hostname, http.StatusNotFound)
+		return nil
+	}
+
+	notSecure := r.TLS == nil
+
+	if notSecure && !mount.allowInsecureHTTP { // important that this is done before stripPrefix
+		redirectHTTPToHTTPS(w, r) // come back when you have TLS, bro
+		return mount
+	}
+
+	// todo: respect x-forwarded-for headers but only if configured as trusted
+	if allowed, errStr := ipAllowed(r.RemoteAddr, mount.App.ID, ipRules); !allowed {
+		http.Error(w, errStr, http.StatusForbidden)
+		return mount
+	}
+
+	if mount.stripPrefix {
+		// path=/files/foobar.txt stripPrefix=/files/
+		// => "foobar.txt"
+		newPath := r.URL.Path[len(mount.prefix):]
+		if !strings.HasPrefix(newPath, "/") { // "foobar.txt" => "/foobar.txt"
+			newPath = "/" + newPath
+		}
+
+		r.URL.Path = newPath
+	}
+
+	// pass the request to the concrete application where the actually interesting things happen.
+	// the path (reversed) looks like this:
+	//
+	// Application
+	// └── serveRequest (app routing/resolving, HTTP-to-HTTPS redirection, IP filtering)
+	//     └── newServerHandler
+	//         ├── listener :443
+	//         └── listener :80
+	mount.backend.ServeHTTP(w, r)
+
+	return mount
 }
 
 func syncAppsFromDiscovery(

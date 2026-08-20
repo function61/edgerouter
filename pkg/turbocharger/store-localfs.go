@@ -6,8 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/function61/gokit/atomicfilewrite"
-	"github.com/function61/gokit/fileexists"
+	"github.com/function61/gokit/os/osutil"
 )
 
 // a store that use the filesystem as the backing store for objects.
@@ -27,7 +26,7 @@ func (d *fileStore) GetObject(ctx context.Context, id ObjectID) (io.ReadCloser, 
 }
 
 func (d *fileStore) InsertObject(ctx context.Context, id ObjectID, content io.Reader, contentType string) error {
-	exists, err := fileexists.Exists(d.path(id))
+	exists, err := osutil.Exists(d.path(id))
 	if err != nil {
 		return err
 	}
@@ -36,10 +35,7 @@ func (d *fileStore) InsertObject(ctx context.Context, id ObjectID, content io.Re
 		return nil
 	}
 
-	return atomicfilewrite.Write(d.path(id), func(sink io.Writer) error {
-		_, err := io.Copy(sink, content)
-		return err
-	})
+	return osutil.WriteFileAtomicFromReader(d.path(id), content)
 }
 
 func (d *fileStore) path(id ObjectID) string {

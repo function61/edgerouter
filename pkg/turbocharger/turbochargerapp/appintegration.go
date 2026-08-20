@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -53,8 +52,8 @@ func StaticFilesExportEntrypoint(files fs.ReadDirFS) *cobra.Command {
 	return &cobra.Command{
 		Use:   "static-files-export",
 		Short: "Export static files as .tar (which can be deployed to turbocharger)",
-		Run: func(*cobra.Command, []string) {
-			osutil.ExitIfError(staticFilesExport(files, os.Stdout))
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return staticFilesExport(files, os.Stdout)
 		},
 	}
 }

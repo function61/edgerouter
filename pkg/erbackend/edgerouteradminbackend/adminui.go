@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/dynversion"
+	"github.com/function61/gokit/app/dynversion"
 )
 
 const adminTpl = `

@@ -12,9 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger"
-	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -28,14 +26,14 @@ func CLIEntrypoint() *cobra.Command {
 		Use:   "tar-deploy-to-store <project>",
 		Short: "Deploy a tar package into the storage, so it can be referenced from somewhere",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
-			logger := slogshim.New()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := slog.Default()
 
-			osutil.ExitIfError(tarDeploy(
-				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
+			return tarDeploy(
+				cmd.Context(),
 				args[0],
 				os.Stdin,
-				logger))
+				logger)
 		},
 	})
 
@@ -43,20 +41,15 @@ func CLIEntrypoint() *cobra.Command {
 		Use:   "download-from-store <manifest>",
 		Short: "(For debug or rescue) download site from remote to local",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
-			logger := slogshim.New()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := slog.Default()
 
-			osutil.ExitIfError(func() error {
-				manifestID, err := turbocharger.ObjectIDFromString(args[0])
-				if err != nil {
-					return err
-				}
+			manifestID, err := turbocharger.ObjectIDFromString(args[0])
+			if err != nil {
+				return err
+			}
 
-				return downloadFromStore(
-					osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
-					*manifestID,
-					logger)
-			}())
+			return downloadFromStore(cmd.Context(), *manifestID, logger)
 		},
 	})
 

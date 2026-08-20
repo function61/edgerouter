@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -13,20 +14,18 @@ import (
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
-	"github.com/function61/gokit/jsonfile"
-	"github.com/function61/gokit/osutil"
+	"github.com/function61/gokit/encoding/jsonfile"
 	"github.com/scylladb/termtables"
 	"github.com/spf13/cobra"
 )
 
-func discoveryList() error {
+func discoveryList(ctx context.Context) error {
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	apps, err := discoverySvc.ReadApplications(ctx)
@@ -55,13 +54,13 @@ func discoveryList() error {
 	return nil
 }
 
-func discoveryDeleteApplication(appID string) error {
+func discoveryDeleteApplication(ctx context.Context, appID string) error {
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	apps, err := discoverySvc.ReadApplications(ctx)
@@ -77,8 +76,8 @@ func discoveryDeleteApplication(appID string) error {
 	return discoverySvc.DeleteApplication(ctx, *app)
 }
 
-func discoveryPut(content io.Reader, newOk bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+func discoveryPut(ctx context.Context, content io.Reader, newOk bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
@@ -93,7 +92,7 @@ func discoveryPut(content io.Reader, newOk bool) error {
 
 	app := &erconfig.Application{}
 
-	if err := jsonfile.Unmarshal(content, app, true); err != nil {
+	if err := jsonfile.UnmarshalDisallowUnknownFields(content, app); err != nil {
 		return err
 	}
 
@@ -123,8 +122,8 @@ func discoveryPutEntry() *cobra.Command {
 		Use:   "put",
 		Short: "Update discovery config for application",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(discoveryPut(os.Stdin, newOk))
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return discoveryPut(cmd.Context(), os.Stdin, newOk)
 		},
 	}
 
@@ -133,13 +132,13 @@ func discoveryPutEntry() *cobra.Command {
 	return cmd
 }
 
-func discoveryCat(appID string) error {
+func discoveryCat(ctx context.Context, appID string) error {
 	discoverySvc, err := newDefaultDiscoveryWithoutLogger()
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	apps, err := discoverySvc.ReadApplications(ctx)
@@ -167,8 +166,8 @@ func discoveryEntry() *cobra.Command {
 		Use:   "ls",
 		Short: "Lists applications",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(discoveryList())
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return discoveryList(cmd.Context())
 		},
 	})
 
@@ -176,8 +175,8 @@ func discoveryEntry() *cobra.Command {
 		Use:   "cat <appId>",
 		Short: "Dump discovery config for application",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(discoveryCat(args[0]))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return discoveryCat(cmd.Context(), args[0])
 		},
 	})
 
@@ -187,8 +186,8 @@ func discoveryEntry() *cobra.Command {
 		Use:   "rm [appId]",
 		Short: "Delete application",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(discoveryDeleteApplication(args[0]))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return discoveryDeleteApplication(cmd.Context(), args[0])
 		},
 	})
 
@@ -196,5 +195,5 @@ func discoveryEntry() *cobra.Command {
 }
 
 func newDefaultDiscoveryWithoutLogger() (erdiscovery.ReaderWriter, error) {
-	return defaultdiscovery.New(slogshim.NewWithOutput(io.Discard))
+	return defaultdiscovery.New(slog.New(slog.DiscardHandler))
 }

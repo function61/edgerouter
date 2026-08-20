@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestMountResolver(t *testing.T) {
@@ -40,17 +40,17 @@ func TestMountResolver(t *testing.T) {
 	matchers, err := appConfigToHandlersAndMatchers(context.Background(), apps, nil, time.Date(2021, 6, 30, 15, 17, 0, 0, time.UTC), nil)
 	assert.Ok(t, err)
 
-	assert.Assert(t, resolveMount("notfound.net", "/", matchers) == nil)
+	assert.Equal(t, resolveMount("notfound.net", "/", matchers) == nil, true)
 
-	assert.EqualString(t, resolveMount("example.com", "/", matchers).App.ID, "examplecom-app")
-	assert.EqualString(t, resolveMount("example.com", "/lollotilol", matchers).App.ID, "examplecom-app")
+	assert.Equal(t, resolveMount("example.com", "/", matchers).App.ID, "examplecom-app")
+	assert.Equal(t, resolveMount("example.com", "/lollotilol", matchers).App.ID, "examplecom-app")
 
-	assert.Assert(t, resolveMount("docs.example.com", "/", matchers).App.ID == "examplecom-docs-root")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo", matchers).App.ID, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo/", matchers).App.ID, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foo/stuff", matchers).App.ID, "examplecom-docs-foo")
-	assert.EqualString(t, resolveMount("docs.example.com", "/foobar", matchers).App.ID, "examplecom-docs-root")
-	assert.EqualString(t, resolveMount("docs.example.com", "/bar", matchers).App.ID, "examplecom-docs-bar")
-	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/acme-challenge/TOKEN", matchers).App.ID, "acme-challenge")
-	assert.EqualString(t, resolveMount("docs.example.com", "/.well-known/test", matchers).App.ID, "well-known")
+	assert.Equal(t, resolveMount("docs.example.com", "/", matchers).App.ID == "examplecom-docs-root", true)
+	assert.Equal(t, resolveMount("docs.example.com", "/foo", matchers).App.ID, "examplecom-docs-foo")
+	assert.Equal(t, resolveMount("docs.example.com", "/foo/", matchers).App.ID, "examplecom-docs-foo")
+	assert.Equal(t, resolveMount("docs.example.com", "/foo/stuff", matchers).App.ID, "examplecom-docs-foo")
+	assert.Equal(t, resolveMount("docs.example.com", "/foobar", matchers).App.ID, "examplecom-docs-root")
+	assert.Equal(t, resolveMount("docs.example.com", "/bar", matchers).App.ID, "examplecom-docs-bar")
+	assert.Equal(t, resolveMount("docs.example.com", "/.well-known/acme-challenge/TOKEN", matchers).App.ID, "acme-challenge")
+	assert.Equal(t, resolveMount("docs.example.com", "/.well-known/test", matchers).App.ID, "well-known")
 }

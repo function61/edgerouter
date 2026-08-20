@@ -55,7 +55,7 @@ var _ interface {
 } = (*ObjectID)(nil)
 
 func (o *ObjectID) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, o.String())), nil
+	return fmt.Appendf(nil, `"%s"`, o.String()), nil
 }
 
 func (o *ObjectID) UnmarshalJSON(b []byte) error {
@@ -83,7 +83,7 @@ func ObjectIDFromString(serialized string) (*ObjectID, error) {
 	}
 
 	id := ObjectID{}
-	if err := json.Unmarshal([]byte(fmt.Sprintf(`"%s"`, serialized)), &id); err != nil {
+	if err := json.Unmarshal(fmt.Appendf(nil, `"%s"`, serialized), &id); err != nil {
 		return nil, err
 	}
 

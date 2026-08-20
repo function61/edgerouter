@@ -8,9 +8,7 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger"
-	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -19,20 +17,15 @@ func CLIEntrypoint() *cobra.Command {
 		Use:   "deploy-site-from-store [applicationId] [manifestID]",
 		Short: "Deploys a static website from Turbocharger",
 		Args:  cobra.ExactArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
-			logger := slogshim.New()
-			osutil.ExitIfError(func() error {
-				manifestID, err := turbocharger.ObjectIDFromString(args[1])
-				if err != nil {
-					return err
-				}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := slog.Default()
 
-				return deploy(
-					osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
-					args[0],
-					*manifestID,
-					logger)
-			}())
+			manifestID, err := turbocharger.ObjectIDFromString(args[1])
+			if err != nil {
+				return err
+			}
+
+			return deploy(cmd.Context(), args[0], *manifestID, logger)
 		},
 	}
 }

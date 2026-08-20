@@ -12,7 +12,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdomain"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/eventhorizon/pkg/ehclient"
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
@@ -43,7 +42,7 @@ func New(tenantCtx ehreader.TenantCtx, logger *slog.Logger) (erdiscovery.ReaderW
 		apps:      map[string]erconfig.Application{},
 	}
 
-	d.reader = ehreader.New(d, tenantCtx.Client, slogshim.ToStd(logger.With("subsystem", "ehdiscovery/ehreader"), slog.LevelInfo))
+	d.reader = ehreader.New(d, tenantCtx.Client, logger.With("subsystem", "ehdiscovery/ehreader"))
 
 	return d, nil
 }

@@ -3,15 +3,15 @@ package erserver
 import (
 	"testing"
 
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestHostnameRegexpSyntaxToRegexp(t *testing.T) {
 	re, err := hostnameRegexpSyntaxToRegexp("hellohttp.{[^.]+}.fn61.net")
-	assert.Assert(t, err == nil)
+	assert.Equal(t, err == nil, true)
 
-	assert.EqualString(t, re.String(), `^hellohttp\.[^.]+\.fn61\.net$`)
+	assert.Equal(t, re.String(), `^hellohttp\.[^.]+\.fn61\.net$`)
 
-	assert.Assert(t, re.MatchString("hellohttp.dev.fn61.net") == true)
-	assert.Assert(t, re.MatchString("xhellohttp.dev.fn61.net") == false)
+	assert.Equal(t, re.MatchString("hellohttp.dev.fn61.net") == true, true)
+	assert.Equal(t, re.MatchString("xhellohttp.dev.fn61.net") == false, true)
 }

@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestTurbocharger(t *testing.T) {
@@ -32,7 +31,7 @@ func TestTurbocharger(t *testing.T) {
 		Manifests: manifests,
 	}
 
-	deployer := NewDeploymentManager(storages, slogshim.NewWithOutput(io.Discard))
+	deployer := NewDeploymentManager(storages, slog.New(slog.DiscardHandler))
 
 	filesToUpload := []*FileToDeploy{
 		&FileToDeploy{"/foo.txt", strings.NewReader("hello world")},
@@ -87,10 +86,10 @@ func TestTurbocharger(t *testing.T) {
 			}
 		}
 
-		assert.EqualString(t, strings.Join(noteworthy, ","), expected)
+		assert.Equal(t, strings.Join(noteworthy, ","), expected)
 	}
 
-	mh := newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slogshim.NewWithOutput(io.Discard))
+	mh := newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slog.New(slog.DiscardHandler))
 
 	// fetch initial manifest
 	{
@@ -99,8 +98,8 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		// ask for a file that does not exist (we will still get manifest downloaded)
-		assert.Assert(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist)
-		assert.Assert(t, response.Code == http.StatusNotFound)
+		assert.Equal(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist, true)
+		assert.Equal(t, response.Code == http.StatusNotFound, true)
 
 		// manifest was checked from cache and retrieved from manifest origin and then cached
 		storagesAccessed(before, "manifests.gets=1,cacheUncompressed.gets=1,cacheUncompressed.puts=1")
@@ -112,21 +111,21 @@ func TestTurbocharger(t *testing.T) {
 
 		response := httptest.NewRecorder()
 
-		assert.Assert(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist)
-		assert.Assert(t, response.Code == http.StatusNotFound)
+		assert.Equal(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist, true)
+		assert.Equal(t, response.Code == http.StatusNotFound, true)
 
 		// no fetches to backing store
 		storagesAccessed(before, "")
 	}
 
 	// simulate restarting a loadbalancer process. we'll lose manifest RAM cache ..
-	mh = newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slogshim.NewWithOutput(io.Discard))
+	mh = newManifestHandlerWithCaches(storages, cacheGzipped, cacheUncompressed, slog.New(slog.DiscardHandler))
 
 	// .. but will be able to load manifest from cache without having to contact manifest origin
 	{
 		before := newSnapshot()
 
-		assert.Assert(t, mh.ServeHTTPFromManifest(man.ID, httptest.NewRecorder(), getRequest("/does-not-exist.txt")) == fs.ErrNotExist)
+		assert.Equal(t, mh.ServeHTTPFromManifest(man.ID, httptest.NewRecorder(), getRequest("/does-not-exist.txt")) == fs.ErrNotExist, true)
 
 		storagesAccessed(before, "cacheUncompressed.gets=1")
 	}
@@ -138,7 +137,7 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/foo.txt")))
-		assert.EqualString(t, response.Body.String(), "hello world")
+		assert.Equal(t, response.Body.String(), "hello world")
 
 		storagesAccessed(before, "files.gets=1,cacheGzipped.gets=2,cacheGzipped.puts=1,cacheUncompressed.gets=1")
 	}
@@ -150,8 +149,8 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/foo.txt")))
-		assert.EqualString(t, response.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-		assert.EqualString(t, response.Body.String(), "hello world")
+		assert.Equal(t, response.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+		assert.Equal(t, response.Body.String(), "hello world")
 
 		storagesAccessed(before, "cacheGzipped.gets=1")
 	}
@@ -163,8 +162,8 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/bar.jpg")))
-		assert.EqualString(t, response.Header().Get("Content-Type"), "image/jpeg")
-		assert.Assert(t, bytes.Equal(response.Body.Bytes(), []byte{0x00, 0x01, 0x02}))
+		assert.Equal(t, response.Header().Get("Content-Type"), "image/jpeg")
+		assert.Equal(t, bytes.Equal(response.Body.Bytes(), []byte{0x00, 0x01, 0x02}), true)
 
 		storagesAccessed(before, "files.gets=1,cacheGzipped.gets=2,cacheUncompressed.gets=2,cacheUncompressed.puts=1")
 	}
@@ -178,9 +177,9 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/bar.jpg")))
-		assert.Assert(t, bytes.Equal(response.Body.Bytes(), []byte{0x00, 0x01, 0x02}))
+		assert.Equal(t, bytes.Equal(response.Body.Bytes(), []byte{0x00, 0x01, 0x02}), true)
 
-		assert.EqualString(t, response.Header().Get("ETag"), barJpgETag)
+		assert.Equal(t, response.Header().Get("ETag"), barJpgETag)
 
 		storagesAccessed(before, "cacheGzipped.gets=1,cacheUncompressed.gets=1")
 	}
@@ -195,8 +194,8 @@ func TestTurbocharger(t *testing.T) {
 		req.Header.Set("If-None-Match", barJpgETag)
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, req))
-		assert.Assert(t, response.Code == http.StatusNotModified)
-		assert.Assert(t, len(response.Body.Bytes()) == 0)
+		assert.Equal(t, response.Code == http.StatusNotModified, true)
+		assert.Equal(t, len(response.Body.Bytes()) == 0, true)
 
 		storagesAccessed(before, "")
 	}
@@ -217,8 +216,8 @@ func TestTurbocharger(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		assert.Ok(t, mh.ServeHTTPFromManifest(man.ID, response, getRequest("/does-not-exist.txt")))
-		assert.Assert(t, response.Code == http.StatusNotFound)
-		assert.EqualString(t, response.Body.String(), "pixels not found")
+		assert.Equal(t, response.Code == http.StatusNotFound, true)
+		assert.Equal(t, response.Body.String(), "pixels not found")
 
 		// even custom 404s must be really cheap
 		storagesAccessed(before, "cacheGzipped.gets=1")
@@ -231,8 +230,8 @@ func TestTurbocharger(t *testing.T) {
 
 		response := httptest.NewRecorder()
 
-		assert.Assert(t, mh.ServeHTTPFromManifest(incorrectManifestID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist)
-		assert.Assert(t, response.Code == http.StatusInternalServerError)
+		assert.Equal(t, mh.ServeHTTPFromManifest(incorrectManifestID, response, getRequest("/does-not-exist.txt")) == fs.ErrNotExist, true)
+		assert.Equal(t, response.Code == http.StatusInternalServerError, true)
 
 		storagesAccessed(before, "manifests.gets=1,cacheUncompressed.gets=1")
 	}

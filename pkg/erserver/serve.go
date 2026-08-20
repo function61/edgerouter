@@ -23,12 +23,11 @@ import (
 	"github.com/function61/edgerouter/pkg/erdiscovery/ehdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/s3discovery"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger"
 	"github.com/function61/eventhorizon/pkg/ehreader"
-	"github.com/function61/gokit/envvar"
-	"github.com/function61/gokit/taskrunner"
+	"github.com/function61/gokit/net/http/httputils"
+	"github.com/function61/gokit/os/osutil"
+	"github.com/function61/gokit/sync/taskrunner"
 )
 
 const (
@@ -43,7 +42,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 	waitAlreadyDoneFIXMENOTNEEDEDLONG := false
 
 	tasksCtx, tasksCancel := context.WithCancel(ctx)
-	tasks := taskrunner.New(tasksCtx, slogshim.ToStd(logger, slog.LevelInfo))
+	tasks := taskrunner.New(tasksCtx, logger)
 	defer func() {
 		// this defer is only needed for early exits to stop certbus sync task. if we exit from happy
 		// path at bottom of this fn, this is not needed (but does not hurt to run twice)
@@ -220,7 +219,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 				GetCertificate: getCertificateFn,
 			},
 			Handler:           serveRequestWithMetricsCapture,
-			ReadHeaderTimeout: todoupgradegokit.DefaultReadHeaderTimeout,
+			ReadHeaderTimeout: httputils.DefaultReadHeaderTimeout,
 		}
 
 		return cancelableServer(ctx, srv, func() error { return srv.ListenAndServeTLS("", "") })
@@ -230,7 +229,7 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 		srv := &http.Server{
 			Addr:              ":80",
 			Handler:           serveRequestWithMetricsCapture,
-			ReadHeaderTimeout: todoupgradegokit.DefaultReadHeaderTimeout,
+			ReadHeaderTimeout: httputils.DefaultReadHeaderTimeout,
 		}
 
 		return cancelableServer(ctx, srv, srv.ListenAndServe)
@@ -348,7 +347,7 @@ func configureDiscovery(ctx context.Context, logger *slog.Logger) (erdiscovery.R
 
 func makeCertBus(ctx context.Context, logger *slog.Logger) (*certbus.App, error) {
 	// loadbalancer's CertBus private key for which the certificate private keys are encrypted
-	certBusPrivateKey, err := envvar.RequiredFromBase64Encoded("CERTBUS_CLIENT_PRIVKEY")
+	certBusPrivateKey, err := osutil.GetenvRequiredFromBase64("CERTBUS_CLIENT_PRIVKEY")
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +357,7 @@ func makeCertBus(ctx context.Context, logger *slog.Logger) (*certbus.App, error)
 		return nil, err
 	}
 
-	certBus, err := certbus.New(ctx, *tenantCtx, string(certBusPrivateKey), slogshim.ToStd(logger, slog.LevelInfo))
+	certBus, err := certbus.New(ctx, *tenantCtx, string(certBusPrivateKey), logger)
 	if err != nil {
 		return nil, err
 	}
@@ -417,5 +416,6 @@ func redirectHTTPToHTTPS(w http.ResponseWriter, r *http.Request) {
 		target += "?" + r.URL.RawQuery
 	}
 
-	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+	// Host has already matched a configured frontend before this handler is called.
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect) //nolint:gosec // G710: not an arbitrary redirect target
 }

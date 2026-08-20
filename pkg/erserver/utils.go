@@ -8,7 +8,7 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
-	"github.com/function61/gokit/fileexists"
+	"github.com/function61/gokit/os/osutil"
 )
 
 // net.SplitHostPort() does not support case where port is not defined...
@@ -56,7 +56,7 @@ func cancelableServer(ctx context.Context, srv *http.Server, listener func() err
 // like its `New()` but don't error if file doesn't exist.
 // (still errors if existence check fails)
 func newFileDiscoveryIfFileExists(path string) (erdiscovery.Reader, error) {
-	exists, err := fileexists.Exists(path)
+	exists, err := osutil.Exists(path)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/ezhttp"
+	"github.com/function61/gokit/net/http/ezhttp"
 )
 
 func New(appID string, opts erconfig.BackendOptsS3StaticWebsite) (http.Handler, error) {

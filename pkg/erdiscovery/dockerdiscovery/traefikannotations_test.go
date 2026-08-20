@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 type labels map[string]string
@@ -192,7 +192,7 @@ func TestTraefikAnnotationsToApp(t *testing.T) {
 			appJSON, err := json.MarshalIndent(app, "", "  ")
 			assert.Ok(t, err)
 
-			assert.EqualString(t, string(appJSON), tc.expectedOutput)
+			assert.Equal(t, string(appJSON), tc.expectedOutput)
 		})
 	}
 }
@@ -202,5 +202,5 @@ func TestParseSubRules(t *testing.T) {
 	assert.Ok(t, err)
 	asJSON, err := json.Marshal(rule)
 	assert.Ok(t, err)
-	assert.EqualString(t, string(asJSON), `{"Host":"example.com","PathPrefix":"/admin/"}`)
+	assert.Equal(t, string(asJSON), `{"Host":"example.com","PathPrefix":"/admin/"}`)
 }

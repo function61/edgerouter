@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/envvar"
+	"github.com/function61/gokit/os/osutil"
 )
 
 func HasConfigInEnv() bool {
@@ -30,12 +30,12 @@ type s3discovery struct {
 }
 
 func New(ctx context.Context) (erdiscovery.ReaderWriter, error) {
-	bucketName, err := envvar.Required("S3_DISCOVERY_BUCKET")
+	bucketName, err := osutil.GetenvRequired("S3_DISCOVERY_BUCKET")
 	if err != nil {
 		return nil, err
 	}
 
-	region, err := envvar.Required("S3_DISCOVERY_BUCKET_REGION")
+	region, err := osutil.GetenvRequired("S3_DISCOVERY_BUCKET_REGION")
 	if err != nil {
 		return nil, err
 	}

@@ -2,17 +2,16 @@ package ehdiscovery
 
 import (
 	"context"
-	"io"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdomain"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/eventhorizon/pkg/ehevent"
 	"github.com/function61/eventhorizon/pkg/ehreader"
 	"github.com/function61/eventhorizon/pkg/ehreader/ehreadertest"
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -25,12 +24,12 @@ func TestDiscovery(t *testing.T) {
 
 	tenantCtx := ehreader.NewTenantCtx(ehreader.TenantId("42"), eventLog)
 
-	discovery, err := New(*tenantCtx, slogshim.NewWithOutput(io.Discard))
+	discovery, err := New(*tenantCtx, slog.New(slog.DiscardHandler))
 	assert.Ok(t, err)
 
 	apps, err := discovery.ReadApplications(ctx)
 	assert.Ok(t, err)
-	assert.Assert(t, len(apps) == 1)
+	assert.Equal(t, len(apps) == 1, true)
 
 	// create 2nd app
 
@@ -40,7 +39,7 @@ func TestDiscovery(t *testing.T) {
 
 	apps, err = discovery.ReadApplications(ctx)
 	assert.Ok(t, err)
-	assert.Assert(t, len(apps) == 2)
+	assert.Equal(t, len(apps) == 2, true)
 
 	// update existing app should not change # of apps
 
@@ -50,7 +49,7 @@ func TestDiscovery(t *testing.T) {
 
 	apps, err = discovery.ReadApplications(ctx)
 	assert.Ok(t, err)
-	assert.Assert(t, len(apps) == 2)
+	assert.Equal(t, len(apps) == 2, true)
 
 	// now delete app 2
 
@@ -60,7 +59,7 @@ func TestDiscovery(t *testing.T) {
 
 	apps, err = discovery.ReadApplications(ctx)
 	assert.Ok(t, err)
-	assert.Assert(t, len(apps) == 1)
+	assert.Equal(t, len(apps) == 1, true)
 }
 
 func testApp(id string) erconfig.Application {

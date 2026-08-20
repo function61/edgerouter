@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
-	"github.com/function61/gokit/httputils"
+	"github.com/function61/gokit/net/http/httputils"
 )
 
 const (

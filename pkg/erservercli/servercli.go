@@ -9,11 +9,9 @@ import (
 	"path/filepath"
 
 	"github.com/function61/edgerouter/pkg/erserver"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
-	"github.com/function61/gokit/dynversion"
-	"github.com/function61/gokit/fileexists"
-	"github.com/function61/gokit/osutil"
-	"github.com/function61/gokit/systemdinstaller"
+	"github.com/function61/gokit/app/dynversion"
+	"github.com/function61/gokit/os/osutil"
+	"github.com/function61/gokit/os/systemdinstaller"
 	"github.com/spf13/cobra"
 )
 
@@ -40,13 +38,13 @@ func Entrypoint(opts Options) *cobra.Command {
 		Use:   "serve",
 		Short: "Runs the HTTP server",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			logger := slogshim.New()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			logger := slog.Default()
 
-			osutil.ExitIfError(erserver.Serve(
-				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
+			return erserver.Serve(
+				cmd.Context(),
 				opts.ConfigDir(),
-				logger))
+				logger)
 		},
 	})
 
@@ -56,8 +54,8 @@ func Entrypoint(opts Options) *cobra.Command {
 		Use:   "install-as-service",
 		Short: "Install systemd service file to start Edgerouter on system startup",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(installAsService(opts))
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return installAsService(opts)
 		},
 	})
 
@@ -66,7 +64,7 @@ func Entrypoint(opts Options) *cobra.Command {
 
 func installAsService(opts Options) error {
 	envFile := opts.ConfigDir().File("edgerouter.env")
-	exists, err := fileexists.Exists(opts.ConfigDir().String())
+	exists, err := osutil.Exists(opts.ConfigDir().String())
 	if err != nil {
 		return err
 	}
@@ -75,7 +73,7 @@ func installAsService(opts Options) error {
 		return fmt.Errorf("'%s' exists - Edgerouter already installed? Not continuing for safety", opts.ConfigDir().String())
 	}
 
-	service := systemdinstaller.SystemdServiceFile(
+	service := systemdinstaller.Service(
 		opts.ServiceName,
 		"Edgerouter",
 		systemdinstaller.Args(opts.SubcommandName, "serve"),
@@ -85,9 +83,11 @@ func installAsService(opts Options) error {
 			"https://github.com/function61/edgerouter",
 			"https://function61.com/"))
 
-	osutil.ExitIfError(systemdinstaller.Install(service))
+	if err := systemdinstaller.Install(service); err != nil {
+		return err
+	}
 
-	fmt.Println(systemdinstaller.GetHints(service))
+	fmt.Println(systemdinstaller.EnableAndStartCommandHints(service))
 
 	if err := os.MkdirAll(opts.ConfigDir().String(), 0700); err != nil {
 		return err

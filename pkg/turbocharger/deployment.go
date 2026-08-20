@@ -16,7 +16,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/function61/edgerouter/pkg/syncutil"
+	"github.com/function61/gokit/sync/syncutil"
 )
 
 type FileToDeploy struct {
@@ -56,41 +56,35 @@ func (d *deploymentManager) Deploy(
 		file *FileToDeploy
 	}
 
-	work := make(chan workItem)
+	if err := syncutil.Concurrently2(ctx, 3, func(ctx context.Context, item workItem) error {
+		contentID := calculateContentID(item.buf)
 
-	if err := syncutil.Concurrently(context.Background(), 3, func(ctx context.Context) error {
-		for item := range work {
-			contentID := calculateContentID(item.buf)
+		d.logger.Info("uploading file",
+			"path", item.file.Path,
+			"content_id", contentID.String(),
+		)
 
-			d.logger.Info("uploading file",
-				"path", item.file.Path,
-				"content_id", contentID.String(),
-			)
-
-			contentType := mime.TypeByExtension(filepath.Ext(item.file.Path))
-			if contentType == "" {
-				contentType = "application/octet-stream"
-			}
-
-			if err := d.storages.Files.InsertObject(ctx, contentID, bytes.NewReader(item.buf), contentType); err != nil {
-				return err
-			}
-
-			func() {
-				manifestMu.Lock()
-				defer manifestMu.Unlock()
-
-				manifest.Files = append(manifest.Files, Path{
-					Path:      item.file.Path,
-					ContentID: contentID,
-				})
-			}()
+		contentType := mime.TypeByExtension(filepath.Ext(item.file.Path))
+		if contentType == "" {
+			contentType = "application/octet-stream"
 		}
 
-		return nil
-	}, func(workersCancel context.Context) error {
-		defer close(work)
+		if err := d.storages.Files.InsertObject(ctx, contentID, bytes.NewReader(item.buf), contentType); err != nil {
+			return err
+		}
 
+		func() {
+			manifestMu.Lock()
+			defer manifestMu.Unlock()
+
+			manifest.Files = append(manifest.Files, Path{
+				Path:      item.file.Path,
+				ContentID: contentID,
+			})
+		}()
+
+		return nil
+	}, func(workersCancel context.Context, work chan workItem) error {
 		for {
 			file, err := nextFile()
 			if err != nil {

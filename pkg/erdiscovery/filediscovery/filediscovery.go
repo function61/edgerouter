@@ -6,7 +6,7 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/jsonfile"
+	"github.com/function61/gokit/encoding/jsonfile"
 )
 
 const (
@@ -31,7 +31,7 @@ func New(file string) erdiscovery.Reader {
 
 func (f *fileDiscovery) ReadApplications(_ context.Context) ([]erconfig.Application, error) {
 	appsFromFile := file{}
-	if err := jsonfile.Read(f.file, &appsFromFile, true); err != nil {
+	if err := jsonfile.ReadDisallowUnknownFields(f.file, &appsFromFile); err != nil {
 		return nil, err
 	}
 	return appsFromFile.Apps, nil

@@ -7,7 +7,6 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/id/pkg/idclient"
-	"github.com/gorilla/mux"
 )
 
 func New(
@@ -21,7 +20,7 @@ func New(
 
 	idpClient := idclient.New(serverURL)
 
-	router := mux.NewRouter()
+	router := http.NewServeMux()
 
 	if opts.Audience == "" { // accidental empty could be dangerous
 		return nil, errors.New("empty audience")
@@ -33,8 +32,8 @@ func New(
 		idclient.UserListAuthorizer(opts.AllowedUserIds...),
 		authorizedBackend)
 
-	// catch-all route (after auth gateway's endpoints)
-	router.PathPrefix("/").Handler(backendAuthorizer)
+	// catch-all route; ServeMux selects the more specific auth gateway endpoints first.
+	router.Handle("/", backendAuthorizer)
 
 	return router, nil
 }

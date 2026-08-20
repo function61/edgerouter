@@ -93,7 +93,7 @@ func uploadAllFiles(ctx context.Context, tarArchive io.Reader, upload *uploadJob
 	wg := &sync.WaitGroup{}
 	wg.Add(workerCount)
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		go uploadWorker(ctx, upload.s3Client, workItems, workError, wg)
 	}
 

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/function61/edgerouter/pkg/syncutil"
+	"github.com/function61/gokit/sync/syncutil"
 )
 
 type ManifestHandler struct {

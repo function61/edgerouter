@@ -9,10 +9,10 @@ import (
 	"io"
 	"net/netip"
 	"os"
+	"slices"
 
-	"github.com/function61/gokit/hcl2json"
-	"github.com/function61/gokit/jsonfile"
-	"github.com/function61/gokit/sliceutil"
+	"github.com/function61/gokit/encoding/hcl2json"
+	"github.com/function61/gokit/encoding/jsonfile"
 )
 
 type ipRule struct {
@@ -25,7 +25,7 @@ func (i ipRule) AllowsApp(appToAccess string) bool {
 		return true
 	}
 
-	return sliceutil.ContainsString(i.allowedAppIds, appToAccess)
+	return slices.Contains(i.allowedAppIds, appToAccess)
 }
 
 func ipAllowed(ipAndPortStr string, appToAccess string, rules []ipRule) (bool, string) {
@@ -126,14 +126,14 @@ func parseHclRules(content io.Reader) ([]ipRule, error) {
 	return rules, nil
 }
 
-func unmarhsalHcl(content io.Reader, data interface{}) error {
+func unmarhsalHcl(content io.Reader, data any) error {
 	// transform to JSON first, because we have better tools to unmarshal that
 	asJSON, err := hcl2json.Convert(content)
 	if err != nil {
 		return err
 	}
 
-	return jsonfile.Unmarshal(asJSON, data, true)
+	return jsonfile.UnmarshalDisallowUnknownFields(asJSON, data)
 }
 
 func mustParsePrefix(rawPrefix string) netip.Prefix {

@@ -11,9 +11,9 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
-	"github.com/function61/gokit/envvar"
-	"github.com/function61/gokit/ezhttp"
-	"github.com/function61/gokit/udocker"
+	"github.com/function61/gokit/app/udocker"
+	"github.com/function61/gokit/net/http/ezhttp"
+	"github.com/function61/gokit/os/osutil"
 )
 
 type Service struct {
@@ -35,7 +35,7 @@ func HasConfigInEnv() bool {
 }
 
 func New(logger *slog.Logger) (erdiscovery.Reader, error) {
-	dockerURL, err := envvar.Required("DOCKER_URL")
+	dockerURL, err := osutil.GetenvRequired("DOCKER_URL")
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +118,9 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerTasks := []udocker.Task{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.TasksEndpoint,
+		dockerURL+udocker.DefaultVersion.TasksEndpoint(),
 		ezhttp.Client(dockerClient),
-		ezhttp.RespondsJson(&dockerTasks, true),
+		ezhttp.RespondsJSONAllowUnknownFields(&dockerTasks),
 	); err != nil {
 		return nil, err
 	}
@@ -128,9 +128,9 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerServices := []udocker.Service{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.ServicesEndpoint,
+		dockerURL+udocker.DefaultVersion.ServicesEndpoint(),
 		ezhttp.Client(dockerClient),
-		ezhttp.RespondsJson(&dockerServices, true),
+		ezhttp.RespondsJSONAllowUnknownFields(&dockerServices),
 	); err != nil {
 		return nil, err
 	}
@@ -138,9 +138,9 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerNodes := []udocker.Node{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.NodesEndpoint,
+		dockerURL+udocker.DefaultVersion.NodesEndpoint(),
 		ezhttp.Client(dockerClient),
-		ezhttp.RespondsJson(&dockerNodes, true),
+		ezhttp.RespondsJSONAllowUnknownFields(&dockerNodes),
 	); err != nil {
 		return nil, err
 	}
@@ -239,9 +239,9 @@ func discoverDockerContainers(
 	containers := []udocker.ContainerListItem{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.ListContainersEndpoint,
+		dockerURL+udocker.DefaultVersion.ListContainersEndpoint(),
 		ezhttp.Client(dockerClient),
-		ezhttp.RespondsJson(&containers, true),
+		ezhttp.RespondsJSONAllowUnknownFields(&containers),
 	); err != nil {
 		return nil, err
 	}
@@ -364,7 +364,7 @@ func networkInspect(
 	_, err := ezhttp.Get(
 		ctx, dockerURL+networkInspectEndpoint(dockerNetworkName),
 		ezhttp.Client(dockerClient),
-		ezhttp.RespondsJson(output, true))
+		ezhttp.RespondsJSONAllowUnknownFields(output))
 
 	return output, err
 }

@@ -161,9 +161,9 @@ func parseTraefikFrontendRule(rule string) (traefikFrontendRule, error) {
 
 	// `Host:example.com;PathPrefix:/admin/`
 	// => `["Host:example.com", "PathPrefix:/admin/"]`
-	subRules := strings.Split(rule, ";")
+	subRules := strings.SplitSeq(rule, ";")
 
-	for _, subRule := range subRules {
+	for subRule := range subRules {
 		switch {
 		case strings.HasPrefix(subRule, "Host:"):
 			parsed.Host = subRule[len("Host:"):]

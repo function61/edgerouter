@@ -3,25 +3,20 @@ package main
 
 import (
 	"log/slog"
-	"os"
 
 	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend/turbochargererdeploy"
 	"github.com/function61/edgerouter/pkg/erlambdacli"
 	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
 	"github.com/function61/edgerouter/pkg/turbocharger/turbochargerdeploy"
 	"github.com/function61/eventhorizon/pkg/ehcli"
-	"github.com/function61/gokit/dynversion"
-	"github.com/function61/gokit/osutil"
+	"github.com/function61/gokit/app/cli"
 	"github.com/spf13/cobra"
 )
 
 func main() {
 	app := &cobra.Command{
-		Use:     os.Args[0],
-		Short:   "Lean and mean edge router from function61.com",
-		Version: dynversion.Version,
+		Short: "Lean and mean edge router from function61.com",
 	}
 
 	app.AddCommand(discoveryEntry())
@@ -34,7 +29,7 @@ func main() {
 	// Event Horizon administration
 	app.AddCommand(ehcli.Entrypoint())
 
-	osutil.ExitIfError(app.Execute())
+	cli.Execute(app)
 }
 
 func serveEntry() *cobra.Command {
@@ -42,13 +37,8 @@ func serveEntry() *cobra.Command {
 		Use:   "serve",
 		Short: "Runs the HTTP server",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			logger := slogshim.New()
-
-			osutil.ExitIfError(erserver.Serve(
-				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
-				erserver.DefaultConfigDir,
-				logger))
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return erserver.Serve(cmd.Context(), erserver.DefaultConfigDir, slog.Default())
 		},
 	}
 }

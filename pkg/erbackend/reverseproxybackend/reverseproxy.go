@@ -1,5 +1,5 @@
 // Reverse proxies traffic to a set of origins. Probably the most powerful building block of Edgerouter -
-// used as backend for Docker discoveries, S3 static websites, fronting S3 buckets etc.
+// used as backend for Docker discoveries, fronting HTTP services, S3 buckets etc.
 package reverseproxybackend
 
 import (

@@ -3,22 +3,22 @@ package erconfig
 import (
 	"testing"
 
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestSelfOrNilIfNoMeaningfulContent(t *testing.T) {
 	emptyConf := TLSConfig{}
 
-	assert.Assert(t, !emptyConf.HasMeaningfulContent())
+	assert.Equal(t, !emptyConf.HasMeaningfulContent(), true)
 
-	assert.Assert(t, emptyConf.SelfOrNilIfNoMeaningfulContent() == nil)
+	assert.Equal(t, emptyConf.SelfOrNilIfNoMeaningfulContent() == nil, true)
 
 	nonEmptyConf1 := TLSConfig{InsecureSkipVerify: true}
 	nonEmptyConf2 := TLSConfig{ServerName: "foobar"}
 
-	assert.Assert(t, nonEmptyConf1.SelfOrNilIfNoMeaningfulContent() != nil)
-	assert.Assert(t, nonEmptyConf1.HasMeaningfulContent())
+	assert.Equal(t, nonEmptyConf1.SelfOrNilIfNoMeaningfulContent() != nil, true)
+	assert.Equal(t, nonEmptyConf1.HasMeaningfulContent(), true)
 
-	assert.Assert(t, nonEmptyConf2.SelfOrNilIfNoMeaningfulContent() != nil)
-	assert.Assert(t, nonEmptyConf2.HasMeaningfulContent())
+	assert.Equal(t, nonEmptyConf2.SelfOrNilIfNoMeaningfulContent() != nil, true)
+	assert.Equal(t, nonEmptyConf2.HasMeaningfulContent(), true)
 }

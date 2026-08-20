@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/function61/gokit/assert"
+	"github.com/function61/gokit/testing/assert"
 )
 
 func TestNoRulesAllAllowed(t *testing.T) {
 	allowed, _ := ipAllowed("1.2.3.4:1234", "anyapp", nil)
-	assert.Assert(t, allowed)
+	assert.Equal(t, allowed, true)
 }
 
 func TestInvalidIP(t *testing.T) {
@@ -19,15 +19,15 @@ func TestInvalidIP(t *testing.T) {
 
 	// without rules IP parsing is skipped
 	allowed, errStr := ipAllowed(invalidIP, "anyapp", nil)
-	assert.Assert(t, allowed)
-	assert.Assert(t, errStr == "")
+	assert.Equal(t, allowed, true)
+	assert.Equal(t, errStr == "", true)
 
 	allIpsPrefix, err := netip.ParsePrefix("0.0.0.0/0")
 	assert.Ok(t, err)
 
 	allowed, errStr = ipAllowed(invalidIP, "anyapp", []ipRule{allowAllApps(allIpsPrefix)})
-	assert.Assert(t, !allowed)
-	assert.EqualString(t, errStr, `invalid IP: ParseAddr("500.400.300.200.100"): IPv4 field has value >255`)
+	assert.Equal(t, !allowed, true)
+	assert.Equal(t, errStr, `invalid IP: ParseAddr("500.400.300.200.100"): IPv4 field has value >255`)
 }
 
 func TestIpFilter(t *testing.T) {
@@ -48,14 +48,14 @@ allow_specified {
 		return netip.MustParseAddr(ipStr)
 	}
 
-	assert.EqualString(t, ruleForIP(ip("192.168.1.18"), rules).ipPrefix.String(), "192.168.1.0/24")
-	assert.EqualString(t, ruleForIP(ip("127.0.0.200"), rules).ipPrefix.String(), "127.0.0.0/24")
-	assert.Assert(t, ruleForIP(ip("127.0.1.200"), rules) == nil)
+	assert.Equal(t, ruleForIP(ip("192.168.1.18"), rules).ipPrefix.String(), "192.168.1.0/24")
+	assert.Equal(t, ruleForIP(ip("127.0.0.200"), rules).ipPrefix.String(), "127.0.0.0/24")
+	assert.Equal(t, ruleForIP(ip("127.0.1.200"), rules) == nil, true)
 
-	assert.EqualString(t, ruleForIP(ip("100.75.44.30"), rules).ipPrefix.String(), "100.75.44.30/32")
-	assert.Assert(t, ruleForIP(ip("100.75.44.31"), rules) == nil)
+	assert.Equal(t, ruleForIP(ip("100.75.44.30"), rules).ipPrefix.String(), "100.75.44.30/32")
+	assert.Equal(t, ruleForIP(ip("100.75.44.31"), rules) == nil, true)
 
-	assert.EqualJson(t, ruleForIP(ip("100.56.80.66"), rules).allowedAppIds, `[
+	assert.EqualJSON(t, ruleForIP(ip("100.56.80.66"), rules).allowedAppIds, `[
   "test"
 ]`)
 
@@ -111,7 +111,7 @@ allow_specified {
 				}
 			}()
 
-			assert.EqualString(t, output, tc.expectedOutput)
+			assert.Equal(t, output, tc.expectedOutput)
 		})
 	}
 

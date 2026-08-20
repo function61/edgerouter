@@ -12,8 +12,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery/defaultdiscovery"
-	"github.com/function61/edgerouter/pkg/todoupgradegokit/slogshim"
-	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -27,13 +25,12 @@ func Entrypoint() *cobra.Command {
 		Use:   "deploy [applicationId] [deployVersion] [pathToArchive]",
 		Short: "Deploys a static website to all edgerouter servers",
 		Args:  cobra.ExactArgs(3),
-		Run: func(cmd *cobra.Command, args []string) {
-			logger := slogshim.New()
-			osutil.ExitIfError(s3Deploy(
-				osutil.CancelOnInterruptOrTerminate(slogshim.ToStd(logger, slog.LevelInfo)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return s3Deploy(
+				cmd.Context(),
 				args[0],
 				args[1],
-				args[2]))
+				args[2])
 		},
 	})
 
@@ -48,7 +45,7 @@ func s3Deploy(
 	deployVersion string,
 	pathToArchive string,
 ) error {
-	discoverySvc, err := defaultdiscovery.New(slogshim.New())
+	discoverySvc, err := defaultdiscovery.New(slog.Default())
 	if err != nil {
 		return err
 	}
@@ -69,13 +66,13 @@ func s3Deploy(
 	return nil
 }
 
-func s3Mk(applicationID string, hostname string, path string, stripPath bool, bucketName string, regionID string) error {
-	discoverySvc, err := defaultdiscovery.New(slogshim.New())
+func s3Mk(ctx context.Context, applicationID string, hostname string, path string, stripPath bool, bucketName string, regionID string) error {
+	discoverySvc, err := defaultdiscovery.New(slog.Default())
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	existingApplications, err := discoverySvc.ReadApplications(ctx)
@@ -108,8 +105,8 @@ func s3MkEntry() *cobra.Command {
 		Use:   "mk [applicationId] [hostname] [path] [bucketName] [regionId]",
 		Short: "Create static website definition",
 		Args:  cobra.ExactArgs(5),
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(s3Mk(args[0], args[1], args[2], stripPath, args[3], args[4]))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return s3Mk(cmd.Context(), args[0], args[1], args[2], stripPath, args[3], args[4])
 		},
 	}
 

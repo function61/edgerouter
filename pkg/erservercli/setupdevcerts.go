@@ -1,13 +1,13 @@
 package erservercli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/function61/gokit/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -21,11 +21,11 @@ func setupDevCertsEntry(opts Options) *cobra.Command {
 		Use:   "ca-install",
 		Short: "Install local-trust-only CA certificate into system trust stores",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			mkcert := exec.Command("mkcert", "-install")
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			mkcert := exec.CommandContext(cmd.Context(), "mkcert", "-install")
 			mkcert.Stdout = os.Stdout
 			mkcert.Stderr = os.Stderr
-			osutil.ExitIfError(translateIfMkcertNotInstalledError(mkcert.Run()))
+			return translateIfMkcertNotInstalledError(mkcert.Run())
 		},
 	})
 
@@ -33,15 +33,15 @@ func setupDevCertsEntry(opts Options) *cobra.Command {
 		Use:   "servercert-generate [hostname]",
 		Short: "Generate server cert. Example hostname: *.dev.example.com",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			osutil.ExitIfError(serverCertGenerate(args[0], opts))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return serverCertGenerate(cmd.Context(), args[0], opts)
 		},
 	})
 
 	return cmd
 }
 
-func serverCertGenerate(hostname string, opts Options) error {
+func serverCertGenerate(ctx context.Context, hostname string, opts Options) error {
 	tempDir, err := os.MkdirTemp("", "edgerouter-mkcert-*")
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func serverCertGenerate(hostname string, opts Options) error {
 
 	// unfortunately, you can't ask mkcert where or for which name to store the certs under
 
-	mkcert := exec.Command("mkcert", hostname)
+	mkcert := exec.CommandContext(ctx, "mkcert", hostname)
 	mkcert.Dir = tempDir
 	mkcert.Stdout = os.Stdout
 	mkcert.Stderr = os.Stderr

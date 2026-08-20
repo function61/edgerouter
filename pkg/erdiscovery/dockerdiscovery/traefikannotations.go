@@ -79,6 +79,8 @@ func traefikAnnotationsToApp(service Service) (*erconfig.Application, error) {
 			return erconfig.SimpleHostnameFrontend(parsed.Host, opts...), nil
 		case parsed.HostRegexp != "":
 			return erconfig.RegexpHostnameFrontend(parsed.HostRegexp, opts...), nil
+		case parsed.PathPrefix != "": // only match on path prefix without hostname specified (the other cases handle hostname specified and path prefix possibly defined)
+			return erconfig.PathPrefixFrontend(parsed.PathPrefix), nil
 		default:
 			return erconfig.Frontend{}, fmt.Errorf("unsupported frontend rule: %s", frontendRule)
 		}

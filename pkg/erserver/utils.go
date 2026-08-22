@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/function61/edgerouter/pkg/erdiscovery"
 	"github.com/function61/edgerouter/pkg/erdiscovery/filediscovery"
@@ -33,8 +34,10 @@ func cancelableServer(ctx context.Context, srv *http.Server, listener func() err
 		// (or below for cleanup if ListenAndServe() failed by itself)
 		<-shutdownerCtx.Done()
 
-		// can't use parent ctx b/c it'd cancel the Shutdown() itself
-		shutdownResult <- srv.Shutdown(context.Background())
+		// Keep the shutdown independent of parent cancellation, but bound its duration.
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer shutdownCancel()
+		shutdownResult <- srv.Shutdown(shutdownCtx)
 	}()
 
 	err := listener()

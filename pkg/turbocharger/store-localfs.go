@@ -22,7 +22,13 @@ func newFileStore(dir string) (CAS, error) {
 var _ CAS = (*fileStore)(nil)
 
 func (d *fileStore) GetObject(ctx context.Context, id ObjectID) (io.ReadCloser, error) {
-	return os.Open(d.path(id)) // important to pass err as-is so it's fs.ErrNotExist
+	root, err := os.OpenRoot(d.dir)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+
+	return root.Open(id.String()) // important to pass err as-is so it's fs.ErrNotExist
 }
 
 func (d *fileStore) InsertObject(ctx context.Context, id ObjectID, content io.Reader, contentType string) error {

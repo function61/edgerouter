@@ -9,7 +9,6 @@ package turbocharger
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -46,7 +45,7 @@ type discoveredSubtree struct {
 	subtreeVersion     turbochargeSubtree // subtree at a specific version. used to tell *manifestHandler* which files and versions the *origin* has
 	pingURL            string             // absolute URL which we'll ping (e.g. http://example.com/static) every validity period expecting to receive latest "turbocharger" header
 	pingCheckOnce      sync.Once          // to make sure ping check is done only once
-	validUntil         <-chan struct{}    // obtained from ctx.Done(). closed when this *discoveredSubtree* should be considered stale.
+	validUntil         <-chan time.Time   // fires when this *discoveredSubtree* should be considered stale.
 }
 
 func NewMiddleware(origin http.Handler, manifestHandler *ManifestHandler, logger *slog.Logger) *turbochargerMiddleware {
@@ -114,7 +113,7 @@ func (t *turbochargerMiddleware) checkForTurbochargerAdvertisement(tcHeader stri
 func (t *turbochargerMiddleware) validityCheckMaybeTriggerPing(discoveredStale *discoveredSubtree, r *http.Request) {
 	// about *validUntil*: we could've used a time instant and compute validity by comparing with
 	// time.Now() but I wager this is more effficient as it saves a "what's the current time" syscall
-	// and now we're only relying on context.WithTimeout() being performant
+	// and now we're only relying on time.After() being performant
 	select {
 	default: // not actually stale
 		return
@@ -181,14 +180,10 @@ func (t *turbochargerMiddleware) attachDiscoveredSubtree(subtree turbochargeSubt
 		Internet  ─────────────────► Loadbalancer ───────────────► Origin
 		             1 000 req/s                     1 req/5 s
 	*/
-	// lint complains about context leak. our use is pretty exotic here, but this'll get cancelled anyway
-	//nolint:govet
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-
 	discovered := &discoveredSubtree{
 		subtreeVersion: subtree,
 		pingURL:        createPingURL(r, subtree),
-		validUntil:     ctx.Done(),
+		validUntil:     time.After(5 * time.Second),
 		originTurbocharged: http.StripPrefix(subtree.Prefix, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := t.manifestHandler.ServeHTTPFromManifest(subtree.ManifestID, w, r); err != nil {
 				t.logger.Error("serve from manifest failed", "error", err, "manifest_id", subtree.ManifestID.String(), "path", r.URL.Path)

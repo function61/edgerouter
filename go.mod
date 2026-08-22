@@ -13,7 +13,7 @@ require (
 	github.com/felixge/httpsnoop v1.1.0
 	github.com/function61/certbus v0.0.0-20260822115830-9d8c749d7a41
 	github.com/function61/eventhorizon v0.2.1-0.20260822112641-bdf8d2936b7f
-	github.com/function61/gokit v0.0.0-20260109142558-7b125766c662
+	github.com/function61/gokit v0.0.0-20260822195148-784934b22880
 	github.com/function61/id v0.0.0-20260818190447-5b4cdbaa3020
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/prometheus/client_golang v1.24.1

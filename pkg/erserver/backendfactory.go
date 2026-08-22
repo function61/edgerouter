@@ -14,7 +14,6 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
-	"github.com/function61/edgerouter/pkg/erbackend/statics3websitebackend"
 	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend"
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -65,8 +64,6 @@ func makeBackendInternal(
 	}
 
 	switch backendConf.Kind {
-	case erconfig.BackendKindS3StaticWebsite:
-		return statics3websitebackend.New(appID, *backendConf.S3StaticWebsiteOpts)
 	case erconfig.BackendKindReverseProxy:
 		return reverseproxybackend.New(ctx, appID, *backendConf.ReverseProxyOpts, appSpecificLogger())
 	case erconfig.BackendKindAwsLambda:

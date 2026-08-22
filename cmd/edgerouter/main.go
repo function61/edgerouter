@@ -6,7 +6,6 @@ import (
 
 	"github.com/function61/edgerouter/pkg/erbackend/turbochargerbackend/turbochargererdeploy"
 	"github.com/function61/edgerouter/pkg/erlambdacli"
-	"github.com/function61/edgerouter/pkg/ers3cli"
 	"github.com/function61/edgerouter/pkg/erserver"
 	"github.com/function61/edgerouter/pkg/turbocharger/turbochargerdeploy"
 	"github.com/function61/eventhorizon/pkg/ehcli"
@@ -23,7 +22,6 @@ func main() {
 	app.AddCommand(serveEntry())
 	app.AddCommand(turbochargerEntrypoint())
 
-	app.AddCommand(ers3cli.Entrypoint())
 	app.AddCommand(erlambdacli.Entrypoint())
 
 	// Event Horizon administration

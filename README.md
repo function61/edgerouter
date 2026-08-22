@@ -4,8 +4,8 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/fn61/edgerouter.svg?style=for-the-badge)](https://hub.docker.com/r/fn61/edgerouter/)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://pkg.go.dev/github.com/function61/edgerouter)
 
-Easy clustering-native, multi-tenancy aware loadbalancer for Docker services, AWS Lambda
-functions and S3 static websites.
+Easy clustering-native, multi-tenancy aware loadbalancer for Docker services and AWS Lambda
+functions.
 
 ![Architecture drawing](docs/architecture.png)
 
@@ -26,12 +26,6 @@ Features
 	* Supports MicroWebApp-style apps (TODO: publish spec)
   certificates
 - Emulates AWS API Gateway for calling Lambda functions
-- S3 static website support
-  * Why use LB in front of S3? Deploys to plain S3 are not atomic. That means users can
-    see broken, in-progress, updates or worse yet - canceled deploy can end up in unknown
-    state. We support atomic deploys on top of S3 with great caching characteristics.
-  * This also makes it possible to overlay dynamic stuff "on top of" a static website.
-    Think `/` mounted to S3 but `/api` mounted as a Lambda function.
 - Manually defined applications (this hostname should be proxied to this IP..)
 - Authorization support
   * For simple websites like (static websites) or backoffice interactive HTTP services that
@@ -50,7 +44,6 @@ Documentation
 
 - [Installation](docs/installation/README.md)
   * Also covers setting up, configuration, AWS IAM permissions
-- [Managing S3 static websites](docs/s3-static-websites/README.md)
 - [Enabling the admin UI](docs/enabling-the-admin-ui/README.md)
   * Also explains authentication middleware
 
@@ -67,8 +60,7 @@ streams for realtime updates:
   * TLS certificate updates happen here
 - `/t-1/loadbalancer`
   * Static application definitions are updated here. "Static" doesn't mean the applications
-    don't evolve - it means that they-re semi permanent. The static definition is updated
-    each time a S3 static website is deployed. Lambda definitions rarely change.
+    don't evolve - it means that they're semi-permanent.
 
 Services/containers discovered from Docker are mostly
 [Traefik-notation compliant](https://docs.traefik.io/v1.7/configuration/backends/docker/),
@@ -92,11 +84,9 @@ EventHorizon follow this structure:
     }
   ],
   "backend": {
-    "kind": "s3_static_website",
-    "s3_static_website_opts": {
-      "bucket_name": "mycompany-staticwebsites",
-      "region_id": "eu-central-1",
-      "deployed_version": "v1"
+    "kind": "reverse_proxy",
+    "reverse_proxy_opts": {
+      "origins": ["http://10.0.0.10:8080"]
     }
   }
 }

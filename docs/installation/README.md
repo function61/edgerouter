@@ -10,7 +10,6 @@ Contents:
 - [AWS IAM config](#aws-iam-config)
   * [EventHorizon](#eventhorizon-1)
   * [Lambda functions](#lambda-functions)
-  * [S3 static website deployment](#s3-static-website-deployment)
 - [Config required pre-start](#config-required-pre-start)
   * [A note about Docker service discovery](#a-note-about-docker-service-discovery)
 - [Runtime config](#runtime-config)
@@ -85,32 +84,6 @@ NOTE: replace `123456789011` with your account id!
 
 (Pro-tip: you can replace `us-east-1` with `*` if you use multiple Lambda regions and you
 want to make it easier to write these policies)
-
-
-### S3 static website deployment
-
-For the user that deploys static websites to S3 (`edgerouter-manager` OR `edgerouter`),
-you need an inline policy like this (NOTE: replace `yourorg-staticwebsites` with your bucket name):
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "deployStaticWebsites",
-            "Effect": "Allow",
-            "Action": [
-                "s3:PutObject",
-                "s3:DeleteObject",
-                "s3:PutObjectAcl"
-            ],
-            "Resource": [
-                "arn:aws:s3:::yourorg-staticwebsites/*"
-            ]
-        }
-    ]
-}
-```
 
 
 Config required pre-start

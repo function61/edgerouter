@@ -80,8 +80,6 @@ func (a *Application) Validate() error {
 	}
 
 	switch a.Backend.Kind {
-	case BackendKindS3StaticWebsite:
-		return a.Backend.S3StaticWebsiteOpts.Validate()
 	case BackendKindReverseProxy:
 		return a.Backend.ReverseProxyOpts.Validate()
 	case BackendKindAwsLambda:
@@ -108,7 +106,6 @@ func (a *Application) Validate() error {
 type BackendKind string
 
 const (
-	BackendKindS3StaticWebsite BackendKind = "s3_static_website"
 	BackendKindReverseProxy    BackendKind = "reverse_proxy"
 	BackendKindAwsLambda       BackendKind = "aws_lambda"
 	BackendKindEdgerouterAdmin BackendKind = "edgerouter_admin"
@@ -120,28 +117,13 @@ const (
 )
 
 type Backend struct {
-	Kind                BackendKind                 `json:"kind"`
-	S3StaticWebsiteOpts *BackendOptsS3StaticWebsite `json:"s3_static_website_opts,omitempty"`
-	ReverseProxyOpts    *BackendOptsReverseProxy    `json:"reverse_proxy_opts,omitempty"`
-	AwsLambdaOpts       *BackendOptsAwsLambda       `json:"aws_lambda_opts,omitempty"`
-	AuthV0Opts          *BackendOptsAuthV0          `json:"auth_v0_opts,omitempty"`
-	AuthSsoOpts         *BackendOptsAuthSso         `json:"auth_sso_opts,omitempty"`
-	RedirectOpts        *BackendOptsRedirect        `json:"redirect_opts,omitempty"`
-	TurbochargerOpts    *BackendOptsTurbocharger    `json:"turbocharger_opts,omitempty"`
-}
-
-type BackendOptsS3StaticWebsite struct {
-	BucketName      string `json:"bucket_name"`
-	RegionID        string `json:"region_id"`
-	DeployedVersion string `json:"deployed_version"`   // can be empty before first deployed version
-	NotFoundPage    string `json:"404_page,omitempty"` // (optional) ex: "404.html", relative to root of deployed site
-}
-
-func (b *BackendOptsS3StaticWebsite) Validate() error {
-	return FirstError(
-		ErrorIfUnset(b.BucketName == "", "BucketName"),
-		ErrorIfUnset(b.RegionID == "", "RegionId"),
-	)
+	Kind             BackendKind              `json:"kind"`
+	ReverseProxyOpts *BackendOptsReverseProxy `json:"reverse_proxy_opts,omitempty"`
+	AwsLambdaOpts    *BackendOptsAwsLambda    `json:"aws_lambda_opts,omitempty"`
+	AuthV0Opts       *BackendOptsAuthV0       `json:"auth_v0_opts,omitempty"`
+	AuthSsoOpts      *BackendOptsAuthSso      `json:"auth_sso_opts,omitempty"`
+	RedirectOpts     *BackendOptsRedirect     `json:"redirect_opts,omitempty"`
+	TurbochargerOpts *BackendOptsTurbocharger `json:"turbocharger_opts,omitempty"`
 }
 
 type BackendOptsReverseProxy struct {
@@ -261,17 +243,6 @@ func PathPrefixFrontend(pathPrefix string, options ...FrontendOpt) Frontend {
 	}
 }
 
-func S3Backend(bucketName string, regionID string, deployedVersion string) Backend {
-	return Backend{
-		Kind: BackendKindS3StaticWebsite,
-		S3StaticWebsiteOpts: &BackendOptsS3StaticWebsite{
-			BucketName:      bucketName,
-			RegionID:        regionID,
-			DeployedVersion: deployedVersion,
-		},
-	}
-}
-
 func ReverseProxyBackend(addrs []string, tlsConfig *TLSConfig, passHostHeader bool) Backend {
 	return Backend{
 		Kind: BackendKindReverseProxy,
@@ -381,8 +352,6 @@ func (f *Frontend) Describe() string {
 
 func (b *Backend) Describe() string {
 	switch b.Kind {
-	case BackendKindS3StaticWebsite:
-		return string(b.Kind) + ":" + b.S3StaticWebsiteOpts.DeployedVersion
 	case BackendKindReverseProxy:
 		return string(b.Kind) + ":" + strings.Join(b.ReverseProxyOpts.Origins, ", ")
 	case BackendKindAwsLambda:

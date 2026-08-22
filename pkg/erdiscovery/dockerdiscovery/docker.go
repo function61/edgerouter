@@ -115,6 +115,10 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 func discoverSwarmServices(ctx context.Context, dockerURL string, networkName string, dockerClient *http.Client) ([]Service, error) {
 	services := []Service{}
 
+	if os.Getenv("DISABLE_SWARM") == "1" {
+		return services, nil
+	}
+
 	dockerTasks := []udocker.Task{}
 	if _, err := ezhttp.Get(
 		ctx,

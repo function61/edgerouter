@@ -199,6 +199,8 @@ func Serve(ctx context.Context, configDir ConfigDir, logger *slog.Logger) error 
 
 		metrics.requestDuration.WithLabelValues(appID).Observe(stats.Duration.Seconds())
 		metrics.requestDuration.WithLabelValues(allAppKey).Observe(stats.Duration.Seconds())
+
+		logAccess(logger, r, appID, stats)
 	})
 
 	logger.Info("turbocharger middleware status", "activated", turbocharger.MiddlewareConfigAvailable())

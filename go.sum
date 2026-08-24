@@ -66,6 +66,10 @@ github.com/function61/gokit v0.0.0-20260822195148-784934b22880 h1:grjWMxamUkVZtZ
 github.com/function61/gokit v0.0.0-20260822195148-784934b22880/go.mod h1:ewGYmDoaszHKjwN9S2AM30oQwe4mhvuRUA4uvzzkmRw=
 github.com/function61/id v0.0.0-20260818190447-5b4cdbaa3020 h1:oZSeyh0lCNx99cvXDIqbE2GzPLb37rX2Mnsn9ubgBVU=
 github.com/function61/id v0.0.0-20260818190447-5b4cdbaa3020/go.mod h1:6U3gEM2iYBUvTftYOxtggLsbxZGiF4zfRzT9Zls5VWg=
+github.com/function61/id v0.0.0-20260824112419-7d0822757eac h1:0vVsBv3cTzI2fwt1akR0uQ2zKnWzE6l/rzuQLZeBXkw=
+github.com/function61/id v0.0.0-20260824112419-7d0822757eac/go.mod h1:6U3gEM2iYBUvTftYOxtggLsbxZGiF4zfRzT9Zls5VWg=
+github.com/function61/id v0.0.0-20260824122525-b9d5a88d2b97 h1:rqbuwL1fwWD7z72srDizU2EE9PHrx0n599nEwmvaz7g=
+github.com/function61/id v0.0.0-20260824122525-b9d5a88d2b97/go.mod h1:6U3gEM2iYBUvTftYOxtggLsbxZGiF4zfRzT9Zls5VWg=
 github.com/google/btree v1.1.3 h1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=
 github.com/google/btree v1.1.3/go.mod h1:qOPhT0dTNdNzV6Z/lhRX0YXUafgPLFUh+gZMl761Gm4=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=

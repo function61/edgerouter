@@ -169,6 +169,7 @@ type BackendOptsAuthSso struct {
 	IDServerURL       string   `json:"id_server_url,omitempty"`
 	AllowedUserIds    []string `json:"allowed_user_ids"`
 	Audience          string   `json:"audience"`
+	Subroot           string   `json:"subroot,omitempty"`  // (optional) if app mounted under e.g. `/myapp`, scopes the auth cookie and auth gateway under the subroot
 	AuthorizedBackend *Backend `json:"authorized_backend"` // ptr for validation
 }
 

@@ -14,7 +14,7 @@ require (
 	github.com/function61/certbus v0.0.0-20260822115830-9d8c749d7a41
 	github.com/function61/eventhorizon v0.2.1-0.20260822112641-bdf8d2936b7f
 	github.com/function61/gokit v0.0.0-20260822195148-784934b22880
-	github.com/function61/id v0.0.0-20260818190447-5b4cdbaa3020
+	github.com/function61/id v0.0.0-20260824122525-b9d5a88d2b97
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/prometheus/client_golang v1.24.1
 	github.com/scylladb/termtables v1.0.0

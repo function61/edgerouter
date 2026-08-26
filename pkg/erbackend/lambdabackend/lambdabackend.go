@@ -62,7 +62,7 @@ func (b *lambdaBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	bodyBase64, err := encodeToBase64RawStd(r.Body)
+	bodyBase64, err := encodeToBase64Std(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -135,7 +135,7 @@ func (b *lambdaBackend) serveHTTPModel(w http.ResponseWriter, r *http.Request) {
 func (b *lambdaBackend) serveRESTModel(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	requestBodyBase64, err := encodeToBase64RawStd(r.Body)
+	requestBodyBase64, err := encodeToBase64Std(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -253,9 +253,10 @@ func copyHeaders(r *http.Request) (map[string]string, error) {
 	return headers, nil
 }
 
-func encodeToBase64RawStd(content io.Reader) (string, error) {
+func encodeToBase64Std(content io.Reader) (string, error) {
 	bodyBuffered := &bytes.Buffer{}
-	encodeBase64 := base64.NewEncoder(base64.RawStdEncoding, bodyBuffered)
+	// needs to be the padded encoding (NOT raw)
+	encodeBase64 := base64.NewEncoder(base64.StdEncoding, bodyBuffered)
 	if _, err := io.Copy(encodeBase64, content); err != nil {
 		return "", err
 	}
@@ -266,8 +267,11 @@ func encodeToBase64RawStd(content io.Reader) (string, error) {
 }
 
 func validatePayloadFormatVersion(version string) (bool, error) {
+	const (
+		notSpecified = ""
+	)
 	switch version {
-	case "1.0", "":
+	case "1.0", notSpecified:
 		return false, nil
 	case "2.0":
 		return true, nil

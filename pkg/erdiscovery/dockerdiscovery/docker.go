@@ -2,12 +2,14 @@
 package dockerdiscovery
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"slices"
 
 	"github.com/function61/edgerouter/pkg/erconfig"
 	"github.com/function61/edgerouter/pkg/erdiscovery"
@@ -66,7 +68,14 @@ func New(logger *slog.Logger) (erdiscovery.Reader, error) {
 		dockerNetworkName: dockerNetworkName,
 		dockerURL:         dockerURL,
 		dockerClient:      dockerClient,
-		logger:            logger,
+		dockerAPIVersion: func() udocker.VersionedEndpoints {
+			if dockerAPIVersion := os.Getenv("DOCKER_API_VERSION"); dockerAPIVersion != "" {
+				return udocker.EndpointVersion(dockerAPIVersion)
+			} else {
+				return udocker.DefaultVersion
+			}
+		}(),
+		logger: logger,
 	}, nil
 }
 
@@ -74,16 +83,17 @@ type dockerDiscovery struct {
 	dockerNetworkName string
 	dockerURL         string
 	dockerClient      *http.Client
+	dockerAPIVersion  udocker.VersionedEndpoints
 	logger            *slog.Logger
 }
 
 func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Application, error) {
-	swarmServices, err := discoverSwarmServices(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient)
+	swarmServices, err := discoverSwarmServices(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, s.dockerAPIVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	bareContainers, err := discoverDockerContainers(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, swarmServices, s.logger)
+	bareContainers, err := discoverDockerContainers(ctx, s.dockerURL, s.dockerNetworkName, s.dockerClient, s.dockerAPIVersion, swarmServices, s.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +122,7 @@ func (s *dockerDiscovery) ReadApplications(ctx context.Context) ([]erconfig.Appl
 	return apps, nil
 }
 
-func discoverSwarmServices(ctx context.Context, dockerURL string, networkName string, dockerClient *http.Client) ([]Service, error) {
+func discoverSwarmServices(ctx context.Context, dockerURL string, networkName string, dockerClient *http.Client, dockerAPIVersion udocker.VersionedEndpoints) ([]Service, error) {
 	services := []Service{}
 
 	if os.Getenv("ENABLE_SWARM") != "true" {
@@ -122,7 +132,7 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerTasks := []udocker.Task{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.DefaultVersion.TasksEndpoint(),
+		dockerURL+dockerAPIVersion.TasksEndpoint(),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJSONAllowUnknownFields(&dockerTasks),
 	); err != nil {
@@ -132,7 +142,7 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerServices := []udocker.Service{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.DefaultVersion.ServicesEndpoint(),
+		dockerURL+dockerAPIVersion.ServicesEndpoint(),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJSONAllowUnknownFields(&dockerServices),
 	); err != nil {
@@ -142,7 +152,7 @@ func discoverSwarmServices(ctx context.Context, dockerURL string, networkName st
 	dockerNodes := []udocker.Node{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.DefaultVersion.NodesEndpoint(),
+		dockerURL+dockerAPIVersion.NodesEndpoint(),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJSONAllowUnknownFields(&dockerNodes),
 	); err != nil {
@@ -215,6 +225,7 @@ func discoverDockerContainers(
 	dockerURL string,
 	dockerNetworkName string,
 	dockerClient *http.Client,
+	dockerAPIVersion udocker.VersionedEndpoints,
 	alreadyDiscoveredFromSwarm []Service,
 	logger *slog.Logger,
 ) ([]Service, error) {
@@ -222,15 +233,15 @@ func discoverDockerContainers(
 
 	// once (for lifetime of this function) = for caching and lazy evaluation because most times
 	// this is not needed
-	var gwbridgeNetworkInspectOnceCached *DockerNetworkInspectOutput
-	gwbridgeNetworkInspectOnce := func() (*DockerNetworkInspectOutput, error) {
+	var gwbridgeNetworkInspectOnceCached *udocker.NetworkInspectOutput
+	gwbridgeNetworkInspectOnce := func() (*udocker.NetworkInspectOutput, error) {
 		if dockerNetworkName != "docker_gwbridge" { // not asking for docker_gwbridge
 			return nil, nil
 		}
 
 		if gwbridgeNetworkInspectOnceCached == nil {
 			var err error
-			gwbridgeNetworkInspectOnceCached, err = networkInspect(ctx, dockerNetworkName, dockerURL, dockerClient)
+			gwbridgeNetworkInspectOnceCached, err = networkInspect(ctx, dockerNetworkName, dockerURL, dockerClient, dockerAPIVersion)
 			if err != nil {
 				gwbridgeNetworkInspectOnceCached = nil // ensure nil on error
 				return nil, err
@@ -243,7 +254,7 @@ func discoverDockerContainers(
 	containers := []udocker.ContainerListItem{}
 	if _, err := ezhttp.Get(
 		ctx,
-		dockerURL+udocker.DefaultVersion.ListContainersEndpoint(),
+		dockerURL+dockerAPIVersion.ListContainersEndpoint(),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJSONAllowUnknownFields(&containers),
 	); err != nil {
@@ -328,14 +339,14 @@ func discoverDockerContainers(
 		// "/baikal_baikal.1.mifsjkoi93gwh9yg89c51va0t" for Swarm-based containers. normally we don't
 		// use this discoverDockerContainers() for Swarm, but if we use docker_gwbridge this is how
 		// we discover conainers outside of Swarm network contexts
-		serviceName := coalesce(
+		serviceName := cmp.Or(
 			container.Labels["com.docker.compose.project"],
 			container.Labels["com.docker.swarm.service.name"],
 			container.Names[0])
 
 		// if already found from Swarm catalogue, don't add from bare container discovery
 		// (so we don't end up with duplicates)
-		if svcsContains(alreadyDiscoveredFromSwarm, serviceName) {
+		if slices.ContainsFunc(alreadyDiscoveredFromSwarm, func(svc Service) bool { return svc.Name == serviceName }) {
 			continue
 		}
 
@@ -362,11 +373,12 @@ func networkInspect(
 	dockerNetworkName string,
 	dockerURL string,
 	dockerClient *http.Client,
-) (*DockerNetworkInspectOutput, error) {
-	output := &DockerNetworkInspectOutput{}
+	dockerAPIVersion udocker.VersionedEndpoints,
+) (*udocker.NetworkInspectOutput, error) {
+	output := &udocker.NetworkInspectOutput{}
 
 	_, err := ezhttp.Get(
-		ctx, dockerURL+networkInspectEndpoint(dockerNetworkName),
+		ctx, dockerURL+dockerAPIVersion.NetworkInspectEndpoint(dockerNetworkName),
 		ezhttp.Client(dockerClient),
 		ezhttp.RespondsJSONAllowUnknownFields(output))
 
@@ -391,36 +403,4 @@ func nodeByID(id string, nodes []udocker.Node) *udocker.Node {
 	}
 
 	return nil
-}
-
-// TODO: these should be in gokit
-
-type DockerNetworkInspectOutput struct {
-	Containers map[string]*struct {
-		IPv4Address string `json:"IPv4Address"` // looks like 10.0.1.7/24
-	} `json:"Containers"`
-}
-
-func networkInspectEndpoint(networkID string) string {
-	return fmt.Sprintf("/v1.24/networks/%s", networkID)
-}
-
-func coalesce(items ...string) string {
-	for _, item := range items {
-		if item != "" {
-			return item
-		}
-	}
-
-	return ""
-}
-
-func svcsContains(services []Service, name string) bool {
-	for _, svc := range services {
-		if svc.Name == name {
-			return true
-		}
-	}
-
-	return false
 }

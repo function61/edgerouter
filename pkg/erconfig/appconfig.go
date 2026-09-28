@@ -3,6 +3,7 @@ package erconfig
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -94,6 +95,8 @@ func (a *Application) Validate() error {
 		return a.Backend.RedirectOpts.Validate()
 	case BackendKindTurbocharger:
 		return a.Backend.TurbochargerOpts.Validate()
+	case BackendKindGoImport:
+		return a.Backend.GoImportOpts.Validate()
 	default:
 		return fmt.Errorf("app %s backend unkown kind: %s", a.ID, a.Backend.Kind)
 	}
@@ -114,6 +117,7 @@ const (
 	BackendKindRedirect        BackendKind = "redirect"
 	BackendKindPromMetrics     BackendKind = "prom_metrics"
 	BackendKindTurbocharger    BackendKind = "turbocharger"
+	BackendKindGoImport        BackendKind = "go_import"
 )
 
 type Backend struct {
@@ -124,6 +128,7 @@ type Backend struct {
 	AuthSsoOpts      *BackendOptsAuthSso      `json:"auth_sso_opts,omitempty"`
 	RedirectOpts     *BackendOptsRedirect     `json:"redirect_opts,omitempty"`
 	TurbochargerOpts *BackendOptsTurbocharger `json:"turbocharger_opts,omitempty"`
+	GoImportOpts     *BackendOptsGoImport     `json:"go_import_opts,omitempty"`
 }
 
 type BackendOptsReverseProxy struct {
@@ -190,6 +195,39 @@ func (b *BackendOptsRedirect) Validate() error {
 
 type BackendOptsTurbocharger struct {
 	Manifest turbocharger.ObjectID `json:"manifest"`
+}
+
+type BackendOptsGoImport struct {
+	RepositoryURLPrefix string `json:"repository_url_prefix"` // e.g. `https://github.com/myorg`
+}
+
+func (b *BackendOptsGoImport) Validate() error {
+	if b == nil {
+		return ErrorIfUnset(true, "GoImportOpts")
+	}
+
+	if err := ErrorIfUnset(b.RepositoryURLPrefix == "", "RepositoryURLPrefix"); err != nil {
+		return err
+	}
+
+	repositoryURL, err := url.Parse(b.RepositoryURLPrefix)
+	if err != nil {
+		return fmt.Errorf("RepositoryURLPrefix: %w", err)
+	}
+
+	if repositoryURL.Scheme != "http" && repositoryURL.Scheme != "https" {
+		return fmt.Errorf("RepositoryURLPrefix: scheme must be http or https")
+	}
+
+	if repositoryURL.Host == "" {
+		return fmt.Errorf("RepositoryURLPrefix: host is required")
+	}
+
+	if repositoryURL.RawQuery != "" || repositoryURL.Fragment != "" {
+		return fmt.Errorf("RepositoryURLPrefix: query and fragment are not allowed")
+	}
+
+	return nil
 }
 
 func (b *BackendOptsTurbocharger) Validate() error {
@@ -269,6 +307,15 @@ func TurbochargerBackend(manifestID turbocharger.ObjectID) Backend {
 		Kind: BackendKindTurbocharger,
 		TurbochargerOpts: &BackendOptsTurbocharger{
 			Manifest: manifestID,
+		},
+	}
+}
+
+func GoImportBackend(repositoryURLPrefix string) Backend {
+	return Backend{
+		Kind: BackendKindGoImport,
+		GoImportOpts: &BackendOptsGoImport{
+			RepositoryURLPrefix: repositoryURLPrefix,
 		},
 	}
 }
@@ -363,6 +410,8 @@ func (b *Backend) Describe() string {
 		return string(b.Kind) + ":" + b.RedirectOpts.To
 	case BackendKindTurbocharger:
 		return string(b.Kind) + ":" + b.TurbochargerOpts.Manifest.String()
+	case BackendKindGoImport:
+		return string(b.Kind) + ":" + b.GoImportOpts.RepositoryURLPrefix
 	case BackendKindAuthSso:
 		return string(b.Kind) + ":" + fmt.Sprintf("[audience=%s] -> %s", b.AuthSsoOpts.Audience, b.AuthSsoOpts.AuthorizedBackend.Describe())
 	case BackendKindEdgerouterAdmin, BackendKindPromMetrics: // to please exhaustive lint

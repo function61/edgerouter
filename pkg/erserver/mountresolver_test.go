@@ -2,6 +2,9 @@ package erserver
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,4 +56,44 @@ func TestMountResolver(t *testing.T) {
 	assert.Equal(t, resolveMount("docs.example.com", "/bar", matchers).App.ID, "examplecom-docs-bar")
 	assert.Equal(t, resolveMount("docs.example.com", "/.well-known/acme-challenge/TOKEN", matchers).App.ID, "acme-challenge")
 	assert.Equal(t, resolveMount("docs.example.com", "/.well-known/test", matchers).App.ID, "well-known")
+}
+
+func TestGoImportFrontendUsesFirstProjectPath(t *testing.T) {
+	apps := []erconfig.Application{
+		erconfig.SimpleApplication(
+			"website",
+			erconfig.SimpleHostnameFrontend("example.com"),
+			erconfig.RedirectBackend("https://example.org")),
+		{
+			ID: "go-imports",
+			Frontends: []erconfig.Frontend{
+				erconfig.SimpleHostnameFrontend("example.com", erconfig.PathPrefix("/mylib1")),
+				erconfig.SimpleHostnameFrontend("example.com", erconfig.PathPrefix("/mylib2")),
+			},
+			Backend: erconfig.GoImportBackend("https://github.com/myorg"),
+		},
+	}
+
+	matchers, err := appConfigToHandlersAndMatchers(context.Background(), apps, nil, time.Now(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mylib1 := resolveMount("example.com", "/mylib1/subpackage", matchers)
+	if mylib1 == nil || mylib1.App.ID != "go-imports" {
+		t.Fatalf("/mylib1/subpackage resolved to %#v", mylib1)
+	}
+
+	response := httptest.NewRecorder()
+	mylib1.backend.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "https://example.com/mylib1/subpackage?go-get=1", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	if got, want := response.Body.String(), "example.com/mylib1 git https://github.com/myorg/mylib1"; !strings.Contains(got, want) {
+		t.Errorf("response body %q does not contain %q", got, want)
+	}
+
+	if website := resolveMount("example.com", "/about", matchers); website == nil || website.App.ID != "website" {
+		t.Fatalf("/about resolved to %#v", website)
+	}
 }

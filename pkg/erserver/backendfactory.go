@@ -11,6 +11,7 @@ import (
 	"github.com/function61/edgerouter/pkg/erbackend/authssobackend"
 	"github.com/function61/edgerouter/pkg/erbackend/authv0backend"
 	"github.com/function61/edgerouter/pkg/erbackend/edgerouteradminbackend"
+	"github.com/function61/edgerouter/pkg/erbackend/goimportbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/lambdabackend"
 	"github.com/function61/edgerouter/pkg/erbackend/redirectbackend"
 	"github.com/function61/edgerouter/pkg/erbackend/reverseproxybackend"
@@ -72,6 +73,8 @@ func makeBackendInternal(
 		return redirectbackend.New(*backendConf.RedirectOpts), nil
 	case erconfig.BackendKindTurbocharger:
 		return turbochargerbackend.New(ctx, backendConf.TurbochargerOpts.Manifest, appSpecificLogger())
+	case erconfig.BackendKindGoImport:
+		return goimportbackend.New(backendConf.GoImportOpts)
 	case erconfig.BackendKindEdgerouterAdmin:
 		return edgerouteradminbackend.New(currentConfig)
 	case erconfig.BackendKindAuthV0:
